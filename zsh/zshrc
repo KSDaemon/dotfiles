@@ -1,0 +1,368 @@
+HISTFILE=~/.histfile
+HISTSIZE=5000
+SAVEHIST=10000
+
+# Changing dirs
+setopt autocd
+
+# Completion
+setopt always_to_end 
+setopt AUTO_MENU           # Show completion menu on a succesive tab press.
+setopt AUTO_LIST           # Automatically list choices on ambiguous completion.
+setopt AUTO_PARAM_SLASH    # If completed parameter is a directory, add a trailing slash.
+setopt AUTO_PARAM_KEYS
+setopt COMPLETE_ALIASES
+setopt complete_in_word
+unsetopt MENU_COMPLETE     # Do not autoselect the first completion entry.
+setopt glob_complete
+
+# Expansion and Globbing
+setopt extendedglob
+setopt nomatch
+
+# History
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_REDUCE_BLANKS
+setopt hist_ignore_space
+setopt inc_append_history
+#setopt share_history
+setopt extended_history
+
+# Input/Output
+setopt correctall
+unsetopt FLOW_CONTROL      # Disable start/stop characters in shell editor.
+setopt interactive_comments
+unsetopt hashdirs
+#setopt nohashcmds
+
+# Prompting
+setopt prompt_subst
+
+# Job Control
+setopt notify
+
+autoload -Uz compinit
+compinit
+autoload -U promptinit
+promptinit
+autoload -U run-help
+autoload run-help-git
+alias help=run-help
+autoload -U colors
+colors
+autoload -U url-quote-magic
+zle -N self-insert url-quote-magic
+autoload -U up-line-or-beginning-search
+autoload -U down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+
+#zstyle ':completion:*' completer _expand _complete _ignored _correct _approximate
+#zstyle ':completion:*' group-name ''
+#zstyle ':completion:*' insert-unambiguous true
+#zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
+#zstyle ':completion:*' list-suffixes true
+#zstyle ':completion:*' matcher-list 'm:{[:lower:][:upper:]}={[:upper:][:lower:]}' 'r:|[._-]=* r:|=*'
+##zstyle ':completion:*' menu select=1 _complete _ignored _approximate
+#zstyle ':completion:*' menu select
+#zstyle ':completion:*' original true
+#zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
+#zstyle ':completion:*' verbose true
+
+_force_rehash() {
+  (( CURRENT == 1 )) && rehash
+  return 1	# Because we didn't really complete anything
+}
+
+## Group matches and describe.
+#zstyle ':completion:*:*:*:*:*' menu select
+zstyle ':completion:*' menu select
+zstyle ':completion:*:matches' group 'yes'
+zstyle ':completion:*:options' description 'yes'
+zstyle ':completion:*:options' auto-description '%d'
+zstyle ':completion:*:corrections' format ' %F{green}-- %d (errors: %e) --%f'
+zstyle ':completion:*:descriptions' format ' %F{yellow}-- %d --%f'
+zstyle ':completion:*:messages' format ' %F{purple} -- %d --%f'
+zstyle ':completion:*:warnings' format ' %F{red}-- no matches found --%f'
+zstyle ':completion:*:default' list-prompt '%S%M matches%s'
+zstyle ':completion:*' format ' %F{yellow}-- %d --%f'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' verbose yes
+
+# Fuzzy match mistyped completions.
+zstyle ':completion:*' completer _oldlist _expand _force_rehash _complete _match _approximate
+zstyle ':completion:*:match:*' original only
+zstyle ':completion:*:approximate:*' max-errors 1 numeric
+
+# Don't complete unavailable commands.
+zstyle ':completion:*:functions' ignored-patterns '(_*|pre(cmd|exec))'
+
+# Array completion element sorting.
+zstyle ':completion:*:*:-subscript-:*' tag-order indexes parameters
+
+# Directories
+zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*:*:cd:*' tag-order local-directories directory-stack path-directories
+zstyle ':completion:*:*:cd:*:directory-stack' menu yes select
+zstyle ':completion:*:-tilde-:*' group-order 'named-directories' 'path-directories' 'users' 'expand'
+zstyle ':completion:*' squeeze-slashes true
+
+# History
+zstyle ':completion:*:history-words' stop yes
+zstyle ':completion:*:history-words' remove-all-dups yes
+zstyle ':completion:*:history-words' list false
+zstyle ':completion:*:history-words' menu yes
+
+# Environmental Variables
+zstyle ':completion::*:(-command-|export):*' fake-parameters ${${${_comps[(I)-value-*]#*,}%%,*}:#-*-}
+
+# Don't complete uninteresting users...
+zstyle ':completion:*:*:*:users' ignored-patterns \
+  adm amanda apache avahi beaglidx bin cacti canna clamav daemon \
+  dbus distcache dovecot fax ftp games gdm gkrellmd gopher \
+  hacluster haldaemon halt hsqldb ident junkbust ldap lp mail \
+  mailman mailnull mldonkey mysql nagios \
+  named netdump news nfsnobody nobody nscd ntp nut nx openvpn \
+  operator pcap postfix postgres privoxy pulse pvm quagga radvd \
+  rpc rpcuser rpm shutdown squid sshd sync uucp vcsa xfs '_*'
+
+# ... unless we really want to.
+zstyle '*' single-ignored show
+
+# Ignore multiple entries.
+zstyle ':completion:*:(rm|kill|diff):*' ignore-line other
+zstyle ':completion:*:rm:*' file-patterns '*:all-files'
+
+# Kill
+zstyle ':completion:*:*:*:*:processes' command 'ps -u $LOGNAME -o pid,user,command -w'
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#) ([0-9a-z-]#)*=01;36=0=01'
+zstyle ':completion:*:*:kill:*' menu yes select
+zstyle ':completion:*:*:kill:*' force-list always
+zstyle ':completion:*:*:kill:*' insert-ids single
+
+# Man
+zstyle ':completion:*:manuals' separate-sections true
+zstyle ':completion:*:manuals.(^1*)' insert-sections true
+
+zstyle :compinstall filename '/Users/kostik/.zshrc'
+
+# Aliases
+alias mkdir='nocorrect mkdir -p'
+alias cp='nocorrect cp -R'
+alias mv='nocorrect mv'
+alias which='nocorrect which'
+alias source='nocorrect source'
+alias man='nocorrect man'
+alias git='nocorrect git'
+alias h='history'
+alias history='fc -l 1'
+alias j='jobs -l'
+alias ..='cd ..'
+alias path='echo -e ${PATH//:/\\n}'
+alias du='du -h'
+alias df='df -h'
+alias ls='ls -F'
+alias ll='ls -lFh'
+alias la='ls -alFh'
+alias ldot='ls -ld .*'
+alias less='less -M'
+alias xs='cd'
+alias vf='cd'
+alias moer='more'
+alias moew='more'
+alias kk='ll'
+alias sshx='export DISPLAY=:0.0 && open /Applications/Utilities/X11.app && ssh -X'
+#alias dxt='xtitle `basename $PWD`'
+alias fixopenwith='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local -domain system -domain user'
+alias wget='wget -c'
+alias grep='nocorrect grep --color=auto'
+alias fd='find . -type d -name'
+alias ff='find . -type f -name'
+alias t='tail -f'
+alias zshrc='vim ~/.zshrc'
+
+alias -g N='2>/dev/null'
+alias -g L='| less'
+alias -g H='| head'
+alias -g T='| tail'
+alias -g G='| grep'
+alias -g L="| less"
+
+cdpath=(~/Projects)
+fpath=(/usr/local/share/zsh-completions $fpath)
+
+extract () {
+  if [ -f $1 ] ; then
+    case $1 in
+      *.tar.bz2) tar xvjf $1   ;;
+      *.tar.gz)  tar xvzf $1   ;;
+      *.tar.xz)  tar xvfJ $1   ;;
+      *.bz2)     bunzip2 $1    ;;
+      *.rar)     unrar x $1    ;;
+      *.gz)      gunzip $1     ;;
+      *.tar)     tar xvf $1    ;;
+      *.tbz2)    tar xvjf $1   ;;
+      *.tgz)     tar xvzf $1   ;;
+      *.zip)     unzip $1      ;;
+      *.Z)       uncompress $1 ;;
+      *.7z)      7z x $1       ;;
+      *)         echo "'$1' cannot be extracted via >extract<" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+myip() {
+  curl -s http://www.formyip.com/ |grep The | awk {'print $5'}
+}
+
+cuttail() {  # удалить последние n строк в файле, по-умолчанию 10
+    nlines=${2:-10}
+    sed -n -e :a -e "1,${nlines}!{P;N;D;};N;ba" $1
+}
+
+lowercase() {  # перевести имя файла в нижний регистр
+    for file ; do
+        filename=${file##*/}
+        case "$filename" in
+        */*) dirname==${file%/*} ;;
+        *) dirname=.;;
+        esac
+        nf=$(echo $filename | tr A-Z a-z)
+        newname="${dirname}/${nf}"
+        if [ "$nf" != "$filename" ]; then
+            mv "$file" "$newname"
+            echo "lowercase: $file --> $newname"
+        else
+            echo "lowercase: имя файла $file не было изменено."
+        fi
+    done
+}
+
+swap() {        # меняет 2 файла местами
+    local TMPFILE=tmp.$$
+    mv "$1" $TMPFILE
+    mv "$2" "$1"
+    mv $TMPFILE "$2"
+}
+
+function repeat() {       # повторить команду n раз
+    local i max
+    max=$1; shift;
+    for ((i=1; i <= max ; i++)); do  # --> C-подобный синтаксис
+        eval "$@";
+    done
+}
+
+function ii() {   # Дополнительные сведения о системе
+    echo -e "\nВы находитесь на $fg_bold[green]$HOST$reset_color"
+    echo -e "\n$fg_bold[red]Дополнительная информация:$reset_color " ; uname -a
+    echo -e "\n$fg_bold[red]В системе работают пользователи:$reset_color " ; w -h
+    echo -e "\n$fg_bold[red]Дата:$reset_color " ; date
+    echo -e "\n$fg_bold[red]Время, прошедшее с момента последней перезагрузки:$reset_color " ; uptime
+#    echo -e "\n$fg_bold[red]Память:$reset_color " ; free
+    echo
+}
+
+source ~/.zsh/antigen/antigen.zsh
+antigen use oh-my-zsh
+antigen bundle zsh-users/zsh-syntax-highlighting
+antigen bundle brew-cask
+antigen bundle brew
+antigen bundle npm
+antigen bundle grunt
+antigen bundle symfony2
+antigen bundle zsh-users/zsh-completions src
+antigen apply
+
+#typeset -A key
+#key[Home]=${terminfo[khome]}
+#key[End]=${terminfo[kend]}
+#key[Insert]=${terminfo[kich1]}
+#key[Delete]=${terminfo[kdch1]}
+#key[Up]=${terminfo[kcuu1]}
+#key[Down]=${terminfo[kcud1]}
+#key[Left]=${terminfo[kcub1]}
+#key[Right]=${terminfo[kcuf1]}
+#key[PageUp]=${terminfo[kpp]}
+#key[PageDown]=${terminfo[knp]}
+
+#[[ -n "${key[Home]}"     ]]  && bindkey  "${key[Home]}"     beginning-of-line
+#[[ -n "${key[End]}"      ]]  && bindkey  "${key[End]}"      end-of-line
+#[[ -n "${key[Insert]}"   ]]  && bindkey  "${key[Insert]}"   overwrite-mode
+#[[ -n "${key[Delete]}"   ]]  && bindkey  "${key[Delete]}"   delete-char
+##[[ -n "${key[Up]}"       ]]  && bindkey  "${key[Up]}"       up-line-or-beginning-search
+##[[ -n "${key[Down]}"     ]]  && bindkey  "${key[Down]}"     down-line-or-beginning-search
+##[[ -n "${key[Up]}"       ]]  && bindkey  "${key[Up]}"       history-beginning-search-backward
+##[[ -n "${key[Down]}"     ]]  && bindkey  "${key[Down]}"     history-beginning-search-forward
+#[[ -n "${key[Left]}"     ]]  && bindkey  "${key[Left]}"     backward-char
+#[[ -n "${key[Right]}"    ]]  && bindkey  "${key[Right]}"    forward-char
+#[[ -n "${key[PageUp]}"   ]]  && bindkey  "${key[PageUp]}"   beginning-of-buffer-or-history
+#[[ -n "${key[PageDown]}" ]]  && bindkey  "${key[PageDown]}" end-of-buffer-or-history
+
+bindkey -e
+bindkey "^[OA" up-line-or-beginning-search
+bindkey "^[OB" down-line-or-beginning-search
+bindkey "^[[A" up-line-or-beginning-search # Up
+bindkey "^[[B" down-line-or-beginning-search # Down
+#bindkey "^[OA" history-beginning-search-backward
+#bindkey "^[OB" history-beginning-search-forward
+bindkey '^[[3~' delete-char
+bindkey '^U' backward-kill-line
+
+# Keypad
+# 0 . Enter
+bindkey -s "^[Op" "0"
+bindkey -s "^[On" "."
+bindkey -s "^[OM" "^M"
+# 1 2 3
+bindkey -s "^[Oq" "1"
+bindkey -s "^[Or" "2"
+bindkey -s "^[Os" "3"
+# 4 5 6
+bindkey -s "^[Ot" "4"
+bindkey -s "^[Ou" "5"
+bindkey -s "^[Ov" "6"
+# 7 8 9
+bindkey -s "^[Ow" "7"
+bindkey -s "^[Ox" "8"
+bindkey -s "^[Oy" "9"
+# + -  * /
+bindkey -s "^[Ok" "+"
+bindkey -s "^[Om" "-"
+bindkey -s "^[Oj" "*"
+bindkey -s "^[Oo" "/"
+bindkey -s "^[OX" "="
+
+source ~/.zsh/zsh-git-prompt/zshrc.sh
+ZSH_THEME_GIT_PROMPT_PREFIX=" %{$fg_bold[red]%}{%{$reset_color%}"
+ZSH_THEME_GIT_PROMPT_SUFFIX="%{$fg_bold[red]%}}%{$reset_color%}"
+ZSH_THEME_GIT_PROMPT_SEPARATOR="%{$fg_bold[red]%}|%{$reset_color%}"
+ZSH_THEME_GIT_PROMPT_BRANCH="%{$fg_bold[cyan]%}"
+ZSH_THEME_GIT_PROMPT_CHANGED="%{$fg_bold[blue]%}%{✚%G%}"
+ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg_bold[green]%}%{✔%G%}%{$reset_color%}"
+ZSH_THEME_GIT_PROMPT_BEHIND="%{%{$fg[cyan]%}↓%{$reset_color%}%G%}"
+ZSH_THEME_GIT_PROMPT_AHEAD="%{%{$fg[cyan]%}↑%{$reset_color%}%G%}"
+
+PROMPT='%B%{%F{green}%}%n%{%F{red}%}@%b%{%F{green}%}%m%B%{%F{green}%}:%{%F{magenta}%}%~/$(git_super_status)%(?.%B%{%F{green}%}.%{%F{red}%}!)%(!.#.>)%{$reset_color%} '
+RPROMPT='%B%{%F{green}%}[%{%F{cyan}%}%T%{%F{green}%}] %{%F{blue}%}cmd#%(?.%B%{%F{green}%}.%{%F{red}%})%h%{$reset_color%}'
+
+export EDITOR=vim
+export PATH=/usr/local/sbin:$PATH:/usr/local/opt/android-sdk/tools:/usr/local/opt/android-sdk/platform-tools:/Applications/Genymotion\ Shell.app/Contents/MacOS:/Applications/Genymotion.app/Contents/MacOS
+#export GREP_OPTIONS='--color=auto'
+export GREP_COLOR='1;32'
+export CLICOLOR=1
+export LS_COLORS="rs=0:di=01;94:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;05;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.lz=01;31:*.xz=01;31:*.bz2=01;31:*.tbz=01;31:*.tbz2=01;31:*.bz=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=01;36:*.au=01;36:*.flac=01;36:*.mid=01;36:*.midi=01;36:*.mka=01;36:*.mp3=01;36:*.mpc=01;36:*.ogg=01;36:*.ra=01;36:*.wav=01;36:*.axa=01;36:*.oga=01;36:*.spx=01;36:*.xspf=01;36:"
+export LSCOLORS=ExFxCxDxBxegedabagacad
+
+###-tns-completion-start-###
+if [ -f ~/.tnsrc ]; then 
+    source ~/.tnsrc 
+fi
+###-tns-completion-end-###
+
+if [ -f ~/.iterm2_shell_integration.zsh ]; then
+    source ~/.iterm2_shell_integration.zsh
+fi
+
