@@ -1,2 +1,2 @@
 # dotfiles
-Different configuration files
+Different configuration files used in my enviroment.
