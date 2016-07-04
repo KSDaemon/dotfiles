@@ -143,6 +143,7 @@ install_dotfiles
 if [ "$(uname -s)" == "Darwin" ]
 then
   info "installing dependencies"
+  info "you can find installation logs at /tmp/dotfiles.log"
 
   # Ask for the administrator password upfront
   sudo -v
@@ -150,7 +151,7 @@ then
   # Keep-alive: update existing `sudo` time stamp until script has finished
   while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-  if source bin/dot > /tmp/dotfiles-dot 2>&1
+  if source bin/dot > /tmp/dotfiles.log 2>&1
   then
     success "dependencies installed"
   else
