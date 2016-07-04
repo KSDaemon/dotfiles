@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source ./../zsh-git-prompt/zshrc.sh
+source "$(pwd -P)/../zsh-git-prompt/zshrc.sh"
 ZSH_THEME_GIT_PROMPT_PREFIX=" %{$fg_bold[red]%}{%{$reset_color%}"
 ZSH_THEME_GIT_PROMPT_SUFFIX="%{$fg_bold[red]%}}%{$reset_color%}"
 ZSH_THEME_GIT_PROMPT_SEPARATOR="%{$fg_bold[red]%}|%{$reset_color%}"
