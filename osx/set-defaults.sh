@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # Sets reasonable OS X defaults.
 
 # Use AirDrop over every interface. srsly this should be a default.

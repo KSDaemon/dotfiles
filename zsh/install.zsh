@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 source ./../antigen/antigen.zsh
 antigen use oh-my-zsh
