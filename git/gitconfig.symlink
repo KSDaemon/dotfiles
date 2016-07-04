@@ -1,0 +1,53 @@
+[user]
+    name = Konstantin Burkalev
+    email = KSDaemon@ya.ru
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    ui = true
+[alias]
+    logp = log --pretty=format:\"%h — %an: %s\"
+    remotes = remote -v
+    co = checkout
+    st = status
+    ci = commit
+    br = branch
+    sm = submodule
+    smupd = submodule update
+    logpg = log --pretty=format:\"%h — %an: %s\" --graph
+    logg = log --graph
+    hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
+    fl = log -u
+    filelog = log -u
+    aliases = "!git config -l | grep alias | cut -c 7-"
+    sync = "!f() { echo Syncing $1 with dev && git checkout dev && git pull && git checkout $1 && git merge --no-ff dev; };"
+    r = reset
+    r1 = reset HEAD^
+    r2 = reset HEAD^^
+    rh = reset --hard
+    rh1 = reset HEAD^ --hard
+    rh2 = reset HEAD^^ --hard
+    sl = stash list
+    sa = stash apply
+    ss = stash save
+[core]
+    autocrlf = input
+    safecrlf = true
+    quotepath = false
+    excludesfile = ~/.gitignore
+[diff]
+    compactionHeuristic = 1
+[help]
+    autocorrect = 1
+[push]
+    default = upstream
+[filter "media"]
+    clean = git-media-clean %f
+    smudge = git-media-smudge %f
+[pager]
+    log = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight | less
+    show = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight | less
+    diff = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight | less
+[interactive]
+    diffFilter = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight

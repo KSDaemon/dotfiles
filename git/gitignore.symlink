@@ -1,0 +1,13 @@
+*~
+.DS_Store
+.settings
+.settings/*
+.buildpath
+.idea
+.idea/*
+*sublime*
+.tags*
+node_modules
+bower_components
+openresty
+.vscode
