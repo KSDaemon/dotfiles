@@ -1,6 +1,5 @@
-[user]
-    name = Konstantin Burkalev
-    email = KSDaemon@ya.ru
+[include]
+    path = ~/.gitconfig.local
 [color]
     diff = auto
     status = auto
