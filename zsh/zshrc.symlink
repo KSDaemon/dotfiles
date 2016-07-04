@@ -2,13 +2,13 @@
 ZSHFILES_ROOT=$(pwd -P)
 
 # load all scripts, except completions
-for file in $(find -H "ZSHFILES_ROOT" -name '*.zsh' -not -name 'completion.zsh')
+for file in $(find -H "$ZSHFILES_ROOT" -name '*.zsh' -not -name 'completion.zsh')
 do
   source $file
 done
 
 # load completions after all
-for file in $(find -H "ZSHFILES_ROOT" -name '*completion.zsh')
+for file in $(find -H "$ZSHFILES_ROOT" -name '*completion.zsh')
 do
   source $file
 done
