@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-source "$(pwd -P)/antigen/antigen.zsh"
+source "$DOTFILES_ROOT/antigen/antigen.zsh"
 antigen use oh-my-zsh
 antigen bundle zsh-users/zsh-syntax-highlighting
 antigen bundle brew-cask

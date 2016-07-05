@@ -1,5 +1,7 @@
 
-ZSHFILES_ROOT=$(pwd -P)
+DOTFILES_ROOT=$HOME/.dotfiles
+export DOTFILES_ROOT
+ZSHFILES_ROOT=$DOTFILES_ROOT/zsh
 
 # load all scripts, except completions
 for file in $(find -H "$ZSHFILES_ROOT" -name '*.zsh' -not -name 'completion.zsh')
