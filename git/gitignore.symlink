@@ -1,13 +1,13 @@
 *~
 .DS_Store
+.project
 .settings
-.settings/*
 .buildpath
 .idea
-.idea/*
+.vscode
 *sublime*
 .tags*
 node_modules
 bower_components
 openresty
-.vscode
+npm-debug.log
