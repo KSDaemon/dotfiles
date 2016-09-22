@@ -1,17 +1,18 @@
 
 DOTFILES_ROOT=$HOME/.dotfiles
 export DOTFILES_ROOT
-ZSHFILES_ROOT=$DOTFILES_ROOT/zsh
 
 # load all scripts, except completions
-for file in $(find -H "$ZSHFILES_ROOT" -name '*.zsh' -not -name 'completion.zsh')
+for file in $(find -H "$DOTFILES_ROOT" -name '*.zsh' -not -name 'completion.zsh')
 do
+#  echo "Loading $file..."
   source $file
 done
 
 # load completions after all
-for file in $(find -H "$ZSHFILES_ROOT" -name '*completion.zsh')
+for file in $(find -H "$DOTFILES_ROOT" -name '*completion.zsh')
 do
+#  echo "Loading completion $file..."
   source $file
 done
 
