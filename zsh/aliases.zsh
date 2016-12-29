@@ -31,7 +31,7 @@ alias wget='wget -c'
 alias grep='nocorrect grep --color=auto'
 alias fd='find . -type d -name'
 alias ff='find . -type f -name'
-alias t='tail -f'
+alias t='tail -F'
 alias zshrc='vim ~/.zshrc'
 
 alias -g N='2>/dev/null'
