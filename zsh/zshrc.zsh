@@ -29,7 +29,8 @@ setopt inc_append_history
 setopt extended_history
 
 # Input/Output
-setopt correctall
+unsetopt correct_all  
+setopt correct
 unsetopt FLOW_CONTROL      # Disable start/stop characters in shell editor.
 setopt interactive_comments
 unsetopt hashdirs
