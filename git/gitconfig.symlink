@@ -30,6 +30,12 @@
     sl = stash list
     sa = stash apply
     ss = stash save
+[merge]
+    conflictstyle = diff3
+[status]
+    showUntrackedFiles = all
+[transfer]
+    fsckobjects = true
 [core]
     autocrlf = input
     safecrlf = true
@@ -40,7 +46,8 @@
 [help]
     autocorrect = 1
 [push]
-    default = upstream
+    default = simple
+    followTags = true
 [filter "media"]
     clean = git-media-clean %f
     smudge = git-media-smudge %f
