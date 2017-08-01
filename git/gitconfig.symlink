@@ -41,6 +41,8 @@
     safecrlf = true
     quotepath = false
     excludesfile = ~/.gitignore
+[commit]
+    template = ~/.git_commit_msg_tpl
 [diff]
     compactionHeuristic = 1
 [help]
