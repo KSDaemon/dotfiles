@@ -25,6 +25,7 @@ brew 'zsh'
 
 cask '1password'
 cask 'adium'
+cask 'pencil'
 cask 'firefox'
 cask 'google-chrome'
 cask 'opera'
