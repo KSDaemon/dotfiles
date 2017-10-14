@@ -3,6 +3,7 @@ cask_args appdir: '/Applications'
 tap 'homebrew/bundle'
 
 brew 'coreutils'
+brew 'shellcheck'
 brew 'curl'
 brew 'git'
 brew 'htop-osx'
