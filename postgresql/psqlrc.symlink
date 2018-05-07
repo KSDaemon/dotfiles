@@ -1,0 +1,12 @@
+\set QUIET 1
+\set PROMPT1 '%[%033[0;32m%]%M%[%033[0;31m%]:%[%033[0;32m%]%> %[%033[1;32m%]%n%[%033[1;31m%]@%[%033[1;36m%]%/%[%033[0;36m%]%R%[%033[0;32m%]%#%[%033[0;36m%]%x%[%033[0m%] '
+\set PROMPT2 '%[%033[0;32m%]%M %[%033[1;32m%]%n%[%033[1;31m%]@%[%033[1;36m%]%/%[%033[0;36m%]%R%[%033[0;32m%]%#%[%033[0m%] '
+\setenv PAGER pspg
+\pset border 2
+\pset linestyle unicode
+\pset null '[null]'
+\set COMP_KEYWORD_CASE upper
+\set HISTSIZE 2000
+\set dba '\\i ~/.dotfiles/postgres_dba/start.psql'
+--\timing on
+\set QUIET 0
