@@ -2,6 +2,7 @@ cask_args appdir: '/Applications'
 
 tap 'homebrew/bundle'
 
+brew 'autossh'
 brew 'coreutils'
 brew 'shellcheck'
 brew 'curl'
