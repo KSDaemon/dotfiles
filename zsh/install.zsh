@@ -8,5 +8,5 @@ antigen bundle zsh-users/zsh-syntax-highlighting
 antigen bundle npm
 antigen bundle grunt
 antigen bundle symfony2
-antigen bundle zsh-users/zsh-completions src
+#antigen bundle zsh-users/zsh-completions src
 antigen apply
