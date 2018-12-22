@@ -20,7 +20,7 @@
     fl = log -u
     filelog = log -u
     aliases = "!git config -l | grep alias | cut -c 7-"
-    sync = "!f() { echo Syncing $1 with dev && git checkout dev && git pull && git checkout $1 && git merge --no-ff dev; };"
+    sync = "! echo "Syncing $(git rev-parse --abbrev-ref HEAD) with dev" && git fetch origin && git pull && git merge origin/dev"
     r = reset
     r1 = reset HEAD^
     r2 = reset HEAD^^
@@ -62,8 +62,11 @@
 [interactive]
     diffFilter = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight
 [difftool "sourcetree"]
-	cmd = " "
+	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
 	path = 
 [mergetool "sourcetree"]
-	cmd = " "
+	cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
 	trustExitCode = true
+[user]
+	name = Konstantin Burkalev
+	email = KSDaemon@ya.ru
