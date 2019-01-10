@@ -61,7 +61,3 @@ zle -N down-line-or-beginning-search
 cdpath=(~/Projects)
 fpath=(/usr/local/share/zsh/site-functions $fpath)
 
-if [ -f ~/.iterm2_shell_integration.zsh ]; then
-    source ~/.iterm2_shell_integration.zsh
-fi
-
