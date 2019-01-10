@@ -5,14 +5,14 @@ export DOTFILES_ROOT
 # load all scripts, except completions
 for file in $(find -H "$DOTFILES_ROOT" -name '*.zsh' -not -name 'prompt.zsh' -not -name 'completion.zsh' -not -path '*/antigen/*')
 do
-  echo "Loading $file..."
+#  echo "Loading $file..."
   source $file
 done
 
 # load completions after all
 for file in $(find -H "$DOTFILES_ROOT" -name '*completion.zsh')
 do
-  echo "Loading completion $file..."
+#  echo "Loading completion $file..."
   source $file
 done
 
