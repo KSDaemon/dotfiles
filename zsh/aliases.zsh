@@ -27,6 +27,7 @@ alias sshx='export DISPLAY=:0.0 && open /Applications/Utilities/X11.app && ssh -
 alias lssh='ssh -o StrictHostKeyChecking=no -o GlobalKnownHostsFile=/dev/null -o UserKnownHostsFile=/dev/null -o ConnectionAttempts=35 -o ConnectTimeout=1 '
 #alias dxt='xtitle `basename $PWD`'
 alias fixopenwith='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local -domain system -domain user'
+alias gitpu='git pull && git sm update && git remote prune origin'
 alias wget='wget -c'
 alias grep='nocorrect grep --color=auto'
 alias fd='find . -type d -name'
