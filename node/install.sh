@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 
-npm install -g eslint mocha npm-check svgo webpack webpack-dev-server
+npm install -g eslint mocha npm-check sails svgo webpack webpack-dev-server
