@@ -1,3 +1,17 @@
 [user]
         name = AUTHORNAME
         email = AUTHOREMAIL
+[pager]
+    log = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight | less
+    show = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight | less
+    diff = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight | less
+    tag = false
+    branch = false
+[interactive]
+    diffFilter = /usr/local/share/git-core/contrib/diff-highlight/diff-highlight
+[difftool "sourcetree"]
+    cmd = opendiff \"$LOCAL\" \"$REMOTE\"
+    path =
+[mergetool "sourcetree"]
+    cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+    trustExitCode = true
