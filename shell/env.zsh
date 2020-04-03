@@ -1,6 +1,5 @@
 export EDITOR='vim'
 
-export PATH=/usr/local/sbin:$PATH:/usr/local/opt/android-sdk/tools:/usr/local/opt/android-sdk/platform-tools:/Applications/Genymotion\ Shell.app/Contents/MacOS:/Applications/Genymotion.app/Contents/MacOS
 #export GREP_OPTIONS='--color=auto'
 export GREP_COLOR='1;32'
 export CLICOLOR=1
