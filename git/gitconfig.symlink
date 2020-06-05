@@ -56,3 +56,5 @@
 [pager]
     tag = false
     branch = false
+[pull]
+	rebase = false
