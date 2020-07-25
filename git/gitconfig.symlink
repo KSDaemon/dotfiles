@@ -45,6 +45,9 @@
     template = ~/.git_commit_msg_tpl
 [diff]
     compactionHeuristic = 1
+[fetch]
+    prune = true
+    pruneTags = true
 [help]
     autocorrect = 1
 [push]
@@ -57,4 +60,4 @@
     tag = false
     branch = false
 [pull]
-	rebase = false
+    rebase = false
