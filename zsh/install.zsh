@@ -2,8 +2,6 @@
 
 source "$DOTFILES_ROOT/antigen/antigen.zsh"
 antigen use oh-my-zsh
+antigen theme romkatv/powerlevel10k
 antigen bundle zsh-users/zsh-syntax-highlighting
-#antigen bundle brew-cask
-#antigen bundle brew
-antigen bundle npm
 antigen apply
