@@ -1,7 +1,89 @@
-set hlsearch    " highlight all search results
-set ignorecase  " do case insensitive search
-set incsearch   " show incremental search results as you type
-set number      " display line number
-set noswapfile  " disable swap file
+set shiftwidth=2         " number of spaces to use for autoindenting
+set tabstop=2
+set et
+set smarttab             " insert tabs on the start of a line according to shiftwidth, not tabstop
+set expandtab            " spaces instead tabs
+set autoindent
+set title                " change the terminal's title
+set showmatch            " set show matching parenthesis
+set hlsearch             " highlight all search results
+set ignorecase           " do case insensitive search
+set smartcase            " ignore case if search pattern is all lowercase, case-sensitive otherwise
+set incsearch  	         " show incremental search results as you type
+set number               " display line number
+set noswapfile           " disable swap file
+set nobackup
+set nowritebackup
+set showmode             " show current mode down the bottom
+set scrolloff=3          " keep this number of lines below and above cursor
+set listchars=tab:>.,trail:.,extends:#,nbsp:. " highlight problematic whitespace
+set ttyfast
+set lazyredraw
+set showcmd
+set cmdheight=1
+set laststatus=2
+set wildmenu
+set wildmode=longest:full,full
+set splitbelow
+set splitright
+set wrap
+set linebreak
+set showbreak=↪
 syntax on
+
+" Use plugins/indentation based on filetype.
+filetype on
+filetype plugin on
+filetype indent on
+
+if empty(glob('~/.vim/autoload/plug.vim'))
+  silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs
+    \ https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
+
+" Run PlugInstall if there are missing plugins
+autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
+  \| PlugInstall --sync | source $MYVIMRC
+\| endif
+
+
+" Plugins setup
+call plug#begin()
+
+Plug 'tpope/vim-sensible'
+Plug 'morhetz/gruvbox'
+Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
+Plug 'ryanoasis/vim-devicons'
+Plug 'nathanaelkane/vim-indent-guides'
+Plug 'easymotion/vim-easymotion'
+Plug 'scrooloose/nerdtree'
+Plug 'scrooloose/nerdcommenter'
+Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
+Plug 'tpope/vim-surround'
+Plug 'jiangmiao/auto-pairs'
+Plug 'editorconfig/editorconfig-vim'
+
+call plug#end()
+
+" gruvbox
+colorscheme gruvbox
+
+" vim-airline
+let g:airline#extensions#tabline#enabled=1
+let g:airline_theme='gruvbox'
+
+" vim-intent-guides
+let g:indent_guides_enable_on_vim_startup=1
+
+" nerdtree
+let NERDTreeShowHidden=1
+let NERDTreeQuitOnOpen=1
+nnoremap <leader>n :NERDTreeFocus<CR>
+nnoremap <C-n> :NERDTree<CR>
+nnoremap <C-t> :NERDTreeToggle<CR>
+nnoremap <C-f> :NERDTreeFind<CR>
+nmap ++ <plug>NERDCommenterToggle
+vmap ++ <plug>NERDCommenterToggle
 
