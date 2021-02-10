@@ -8,6 +8,7 @@
 [alias]
     logp = log --pretty=format:\"%h — %an: %s\"
     remotes = remote -v
+    diff = diff --staged
     co = checkout
     st = status
     ci = commit
