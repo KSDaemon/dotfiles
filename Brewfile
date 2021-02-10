@@ -73,3 +73,8 @@ cask 'qlvideo'
 cask 'betterzipql'
 cask 'qlimagesize'
 cask 'suspicious-package'
+cask 'aerial'
+cask 'betterzip'
+cask 'blisk'
+cask 'cheatsheet'
+
