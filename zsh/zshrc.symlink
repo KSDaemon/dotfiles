@@ -34,5 +34,8 @@ test -e "${HOME}/.zshrc.local" && source "${HOME}/.zshrc.local"
 
 
 # fnm
-export PATH=/Users/kostik/.fnm:$PATH
-eval "`fnm env`"
+if command -v fnm >/dev/null; then
+  export PATH=/Users/kostik/.fnm:$PATH
+  eval "`fnm env`"
+fi
+
