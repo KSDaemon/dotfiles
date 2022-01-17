@@ -32,10 +32,3 @@ test -e "${HOME}/.zshrc.local" && source "${HOME}/.zshrc.local"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-
-# fnm
-if command -v fnm >/dev/null; then
-  export PATH=/Users/kostik/.fnm:$PATH
-  eval "`fnm env`"
-fi
-
