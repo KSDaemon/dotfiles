@@ -32,3 +32,10 @@ test -e "${HOME}/.zshrc.local" && source "${HOME}/.zshrc.local"
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+if type brew &>/dev/null; then
+  FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
+
+  autoload -Uz compinit
+  compinit
+fi
+
