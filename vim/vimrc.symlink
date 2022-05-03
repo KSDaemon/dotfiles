@@ -31,6 +31,8 @@ set linebreak
 set showbreak=↪
 syntax on
 
+colorscheme default
+
 " Use plugins/indentation based on filetype.
 filetype on
 filetype plugin on
