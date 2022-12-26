@@ -7,3 +7,6 @@
 [submodule "zsh-git-prompt"]
 	path = zsh-git-prompt
 	url = https://github.com/starcraftman/zsh-git-prompt.git
+[submodule "pg-utils"]
+	path = pg-utils
+	url = https://github.com/dataegret/pg-utils
