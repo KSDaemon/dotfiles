@@ -85,4 +85,4 @@ zstyle ':completion:*:*:kill:*' insert-ids single
 zstyle ':completion:*:manuals' separate-sections true
 zstyle ':completion:*:manuals.(^1*)' insert-sections true
 
-zstyle :compinstall filename '/Users/kostik/.zshrc'
+zstyle :compinstall filename '~/.zshrc'
