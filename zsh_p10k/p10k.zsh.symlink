@@ -304,6 +304,23 @@
   #     '~(|/*)'       HOME     ''
   #     '*'            DEFAULT  '')
   #
+
+  #### My personal styling for some specific directories
+typeset -g POWERLEVEL9K_DIR_CLASSES=(
+  '~/Projects/Simple Things(|/*)'   ST          ''
+  '~/Projects(|/*)'                 PROJECTS    ''
+  '*'                               DEFAULT     '')
+
+typeset -g POWERLEVEL9K_DIR_ST_BACKGROUND=32
+typeset -g POWERLEVEL9K_DIR_ST_FOREGROUND=255
+typeset -g POWERLEVEL9K_DIR_ST_SHORTENED_FOREGROUND=250
+typeset -g POWERLEVEL9K_DIR_ST_ANCHOR_FOREGROUND=255
+
+typeset -g POWERLEVEL9K_DIR_PROJECTS_BACKGROUND=99
+typeset -g POWERLEVEL9K_DIR_PROJECTS_FOREGROUND=255
+typeset -g POWERLEVEL9K_DIR_PROJECTS_SHORTENED_FOREGROUND=250
+typeset -g POWERLEVEL9K_DIR_PROJECTS_ANCHOR_FOREGROUND=255
+
   # Whenever the current directory is ~/work or a subdirectory of ~/work, it gets styled with one
   # of the following classes depending on its writability and existence: WORK, WORK_NOT_WRITABLE or
   # WORK_NON_EXISTENT.
