@@ -29,6 +29,7 @@ done
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 if type brew &>/dev/null; then
+  brew shellenv
   FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
 
   autoload -Uz compinit
