@@ -37,7 +37,9 @@ if type brew &>/dev/null; then
 fi
 
 # direnv hook
-eval "$(direnv hook zsh)"
+if [[ -x $(which "direnv" 2>/dev/null) ]]; then
+  eval "$(direnv hook zsh)"
+fi
 
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 test -e "${HOME}/.zshrc.local" && source "${HOME}/.zshrc.local"
