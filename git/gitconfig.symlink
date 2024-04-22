@@ -32,6 +32,7 @@
     sl = stash list
     sa = stash apply
     ss = stash save
+    staash = stash --all
 [merge]
     conflictstyle = diff3
 [status]
@@ -67,3 +68,7 @@
 	defaultBranch = main
 [rerere]
 	enabled = true
+[column]
+	ui = auto
+[branch]
+	sort = -committerdate
