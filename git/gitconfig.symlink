@@ -33,6 +33,7 @@
     sa = stash apply
     ss = stash save
     staash = stash --all
+    dft = difftool
 [merge]
     conflictstyle = diff3
 [status]
@@ -72,3 +73,13 @@
 	ui = auto
 [branch]
 	sort = -committerdate
+
+# Settings for difftastic tool
+[diff]
+        tool = difftastic
+[difftool]
+        prompt = false
+[difftool "difftastic"]
+        cmd = difft "$LOCAL" "$REMOTE"
+[pager]
+        difftool = true
