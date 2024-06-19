@@ -308,6 +308,7 @@
   #### My personal styling for some specific directories
 typeset -g POWERLEVEL9K_DIR_CLASSES=(
   '~/Projects/Simple Things(|/*)'   ST          ''
+  '~/Projects/Cube.dev(|/*)'        CUBE        ''
   '~/Projects(|/*)'                 PROJECTS    ''
   '*'                               DEFAULT     '')
 
@@ -315,6 +316,11 @@ typeset -g POWERLEVEL9K_DIR_ST_BACKGROUND=33
 typeset -g POWERLEVEL9K_DIR_ST_FOREGROUND=254
 typeset -g POWERLEVEL9K_DIR_ST_SHORTENED_FOREGROUND=250
 typeset -g POWERLEVEL9K_DIR_ST_ANCHOR_FOREGROUND=255
+
+typeset -g POWERLEVEL9K_DIR_CUBE_BACKGROUND=170
+typeset -g POWERLEVEL9K_DIR_CUBE_FOREGROUND=255
+typeset -g POWERLEVEL9K_DIR_CUBE_SHORTENED_FOREGROUND=250
+typeset -g POWERLEVEL9K_DIR_CUBE_ANCHOR_FOREGROUND=255
 
 typeset -g POWERLEVEL9K_DIR_PROJECTS_BACKGROUND=99
 typeset -g POWERLEVEL9K_DIR_PROJECTS_FOREGROUND=255
