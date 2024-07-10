@@ -46,7 +46,10 @@ done
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# fzf completions
+if [[ -x $(which "fzf" 2>/dev/null) ]]; then
+  source <(fzf --zsh)
+fi
 
 # direnv hook
 if [[ -x $(which "direnv" 2>/dev/null) ]]; then
@@ -55,7 +58,4 @@ fi
 
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 test -e "${HOME}/.zshrc.local" && source "${HOME}/.zshrc.local"
-
-# To customize prompt, run `p10k configure` or edit ~/.dotfiles/zsh_p10k/p10k.zsh.symlink.
-[[ ! -f ~/.dotfiles/zsh_p10k/p10k.zsh.symlink ]] || source ~/.dotfiles/zsh_p10k/p10k.zsh.symlink
 
