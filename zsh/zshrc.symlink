@@ -1,22 +1,22 @@
 ARCH=$(uname -m)
-if [ "$ARCH" = "x86_64" ]; then
-    BREW_PATH=$(/usr/local/bin/brew --prefix)/bin
-elif [ "$ARCH" = "arm64" ]; then
-    BREW_PATH=$(/opt/homebrew/bin/brew --prefix)/bin
-else
-    echo "Unknown arch: $ARCH"
-    exit 1
-fi
-
-if [[ ":$PATH:" != *":$BREW_PATH:"* ]]; then
-    export PATH="$BREW_PATH:$PATH"
-fi
-
 if type brew &>/dev/null; then
-  FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
+    if [ "$ARCH" = "x86_64" ]; then
+        BREW_PATH=$(/usr/local/bin/brew --prefix)/bin
+    elif [ "$ARCH" = "arm64" ]; then
+        BREW_PATH=$(/opt/homebrew/bin/brew --prefix)/bin
+    else
+        echo "Unknown arch: $ARCH"
+        exit 1
+    fi
 
-  autoload -Uz compinit
-  compinit
+    if [[ ":$PATH:" != *":$BREW_PATH:"* ]]; then
+        export PATH="$BREW_PATH:$PATH"
+    fi
+
+    FPATH=$(brew --prefix)/share/zsh-completions:$FPATH
+
+    autoload -Uz compinit
+    compinit
 fi
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
