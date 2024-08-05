@@ -22,7 +22,6 @@
     fl = log -u
     filelog = log -u
     aliases = "!git config -l | grep alias | cut -c 7-"
-    sync = "! echo "Syncing $(git rev-parse --abbrev-ref HEAD) with dev" && git fetch origin && git pull && git merge origin/dev"
     r = reset
     r1 = reset HEAD^
     r2 = reset HEAD^^
@@ -34,6 +33,7 @@
     ss = stash save
     staash = stash --all
     dft = difftool
+    pf = push --force
 [merge]
     conflictstyle = diff3
 [status]
