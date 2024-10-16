@@ -72,3 +72,8 @@ function ii() {   # Дополнительные сведения о систе�
 #    echo -e "\n$fg_bold[red]Память:$reset_color " ; free
     echo
 }
+
+crate-features() {
+  curl -s "https://crates.io/api/v1/crates/$1" | jq '.versions[0].features'
+}
+
