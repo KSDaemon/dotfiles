@@ -60,3 +60,7 @@ fi
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 test -e "${HOME}/.zshrc.local" && source "${HOME}/.zshrc.local"
 
+# In case your completions doesn't work - this might me the case of
+# https://github.com/zsh-users/antigen/issues/701
+# Follow the suggestions there to fix the issue
+
