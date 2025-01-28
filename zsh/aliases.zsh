@@ -43,6 +43,7 @@ alias lua5.2='rlwrap lua5.2'
 alias lua5.3='rlwrap lua5.3'
 alias clicolors='for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%20)):#3}:+"\n"}; done'
 alias removehuskyhooks='rm `grep -l husky .git/hooks/*`'
+alias docker=podman
 
 alias -g N='2>/dev/null'
 alias -g L='| less'
