@@ -96,4 +96,5 @@ cask 'quicklook-csv'
 cask 'qlcolorcode'
 cask 'qlmarkdown'
 cask 'zed'
+cask 'stats'
 
