@@ -28,8 +28,6 @@ alias lssh='ssh -o StrictHostKeyChecking=no -o GlobalKnownHostsFile=/dev/null -o
 alias fixopenwith='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local -domain system -domain user'
 alias gitpu='git pull && git sm update && git remote prune origin'
 alias gitpuf='git pull --force && git sm update && git remote prune origin'
-alias syncgit='for f in *; do [ -d "$f" ] && (cd "$f"; [ -d ".git" ] && echo "Syncing $f" && gitpu; cd -;) done'
-alias goteco='go test -cover ./... -coverprofile coverage.out && go tool cover -html coverage.out -o coverage.html'
 alias wget='wget -c'
 alias grep='nocorrect grep --color=auto'
 alias fd='find . -type d -name'
@@ -51,4 +49,3 @@ alias -g H='| head'
 alias -g T='| tail'
 alias -g G='| grep'
 alias -g EG='| egrep'
-alias -g L="| less"
