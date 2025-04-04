@@ -97,4 +97,5 @@ cask 'qlcolorcode'
 cask 'qlmarkdown'
 cask 'zed'
 cask 'stats'
+cask 'syntax-highlight'
 
