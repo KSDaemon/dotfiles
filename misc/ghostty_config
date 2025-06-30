@@ -1,0 +1,39 @@
+# Run `ghostty +show-config --default --docs` to view a list of
+# all available config options and their default values.
+#
+# Additionally, each config option is also explained in detail
+# on Ghostty's website, at https://ghostty.org/docs/config.
+
+font-size = 13
+
+#theme = Andromeda
+#theme = Ayu Mirage
+theme = BlulocoDark
+#theme = Breeze
+#theme = Monokai Pro Octagon
+#theme = Monokai Pro Spectrum
+#theme = Snazzy
+#theme = Snazzy Soft
+
+#cursor-color =
+cursor-style = block
+
+background-opacity = 0.95
+background-blur = true
+
+# This is in bytes. ~10Mb
+scrollback-limit = 10000000
+
+focus-follows-mouse = true
+shell-integration-features = no-cursor
+macos-titlebar-style = tabs
+
+# Quake terminal settings
+#keybind = global:f16=toggle_quick_terminal
+#keybind = global:ctrl+escape=toggle_quick_terminal
+#quick-terminal-animation-duration = 0.1
+
+# Key bindings
+keybind = super+left=previous_tab
+keybind = super+right=next_tab
+
