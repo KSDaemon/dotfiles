@@ -5,28 +5,39 @@
 # on Ghostty's website, at https://ghostty.org/docs/config.
 
 font-size = 13
+font-family = MesloLGS NF
+font-family = Menlo
 
-#theme = Andromeda
+#theme = 0x96f
+theme = Andromeda
 #theme = Ayu Mirage
-theme = BlulocoDark
+#theme = BlulocoDark
 #theme = Breeze
 #theme = Monokai Pro Octagon
 #theme = Monokai Pro Spectrum
 #theme = Snazzy
 #theme = Snazzy Soft
 
-#cursor-color =
+cursor-color = #ffcc00
 cursor-style = block
+cursor-click-to-move = true
 
 background-opacity = 0.95
 background-blur = true
+
+window-padding-x = 3
+window-padding-y = 3
+#window-padding-balance = true
 
 # This is in bytes. ~10Mb
 scrollback-limit = 10000000
 
 focus-follows-mouse = true
 shell-integration-features = no-cursor
+
 macos-titlebar-style = tabs
+#macos-icon = chalkboard
+macos-icon = retro
 
 # Quake terminal settings
 #keybind = global:f16=toggle_quick_terminal
