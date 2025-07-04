@@ -21,6 +21,9 @@ theme = Andromeda
 cursor-color = #ffcc00
 cursor-style = block
 cursor-click-to-move = true
+selection-foreground = #000000
+selection-background = #FFFF00
+split-divider-color = #948b55
 
 background-opacity = 0.95
 background-blur = true
@@ -29,8 +32,8 @@ window-padding-x = 3
 window-padding-y = 3
 #window-padding-balance = true
 
-# This is in bytes. ~10Mb
-scrollback-limit = 10000000
+# This is in bytes. ~30Mb
+scrollback-limit = 30000000
 
 focus-follows-mouse = true
 shell-integration-features = no-cursor
