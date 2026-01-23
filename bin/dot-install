@@ -1,8 +1,6 @@
 #!/usr/bin/env sh
 #
-# dot
-#
-# `dot` handles installation, updates, things like that. Run it periodically
+# `dot-install` handles installation, updates, things like that. Run it periodically
 # to make sure you're on the latest and greatest.
 
 # Set OS X defaults
