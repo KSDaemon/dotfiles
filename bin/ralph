@@ -87,6 +87,64 @@ if [ -f "$PRD_FILE" ]; then
   fi
 fi
 
+# Check if PRD exists, if not - guide user to create one
+if [ ! -f "$PRD_FILE" ]; then
+  echo ""
+  echo "No PRD file found at $PRD_FILE"
+  echo "You need to generate requirements first."
+  echo ""
+  echo "Starting $TOOL to help you create a task description..."
+  echo "Use the PRD skill to generate a detailed requirements document, smth like:"
+  echo "Load the prd skill and create a PRD for [your feature description]"
+  echo "Answer the clarifying questions."
+  echo ""
+
+  # Start the tool in interactive mode
+  if [[ "$TOOL" == "amp" ]]; then
+    amp
+  elif [[ "$TOOL" == "claude" ]]; then
+    claude
+  else
+    if [[ -f "opencode.json" ]]; then
+      opencode --config opencode.json
+    else
+      opencode
+    fi
+  fi
+
+  echo ""
+  echo "Now converting the created PRD to prd.json format..."
+
+  # Find the latest PRD file in tasks/
+  LATEST_PRD=$(ls -t "$RALPH_DIR/tasks/prd-"*.md 2>/dev/null | head -1)
+
+  if [ -n "$LATEST_PRD" ] && [ -f "$LATEST_PRD" ]; then
+    echo "Found PRD: $LATEST_PRD"
+    # Convert to prd.json
+    CONVERT_PROMPT="Load the ralph skill and convert $LATEST_PRD to prd.json"
+    if [[ "$TOOL" == "amp" ]]; then
+      echo "$CONVERT_PROMPT" | amp --dangerously-allow-all
+    elif [[ "$TOOL" == "claude" ]]; then
+      echo "$CONVERT_PROMPT" | claude --dangerously-skip-permissions --print
+    else
+      if [[ -f "opencode.json" ]]; then
+        echo "$CONVERT_PROMPT" | opencode --config opencode.json run
+      else
+        echo "$CONVERT_PROMPT" | opencode run
+      fi
+    fi
+  else
+    echo "No PRD file found in tasks/ directory. Please create one manually."
+    exit 1
+  fi
+
+  # Check if PRD was created successfully
+  if [ ! -f "$PRD_FILE" ]; then
+    echo "Failed to create PRD file. Please check the output above."
+    exit 1
+  fi
+fi
+
 # Initialize progress file if it doesn't exist
 if [ ! -f "$PROGRESS_FILE" ]; then
   echo "# Ralph Progress Log" > "$PROGRESS_FILE"
