@@ -6,6 +6,9 @@
 
 set -e
 
+# Handle Ctrl+C gracefully - exit immediately without running cleanup commands
+trap 'echo ""; echo "Ralph interrupted by user. Exiting..."; exit 130' INT TERM
+
 # Parse arguments
 TOOL="opencode"
 MAX_ITERATIONS=100
