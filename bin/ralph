@@ -52,38 +52,26 @@ PROMPT_FILE="$SCRIPT_DIR/../ralph/prompt.md"
 PRD_FILE="$RALPH_DIR/prd.json"
 PROGRESS_FILE="$RALPH_DIR/progress.txt"
 ARCHIVE_DIR="$RALPH_DIR/archive"
-LAST_BRANCH_FILE="$RALPH_DIR/.last-branch"
+
+CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 
 # Archive previous run if branch changed
-if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
-  CURRENT_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
-  LAST_BRANCH=$(cat "$LAST_BRANCH_FILE" 2>/dev/null || echo "")
+if [ -f "$PRD_FILE" ]; then
+  # Get the branch name from prd.json
+  PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
 
-  if [ -n "$CURRENT_BRANCH" ] && [ -n "$LAST_BRANCH" ] && [ "$CURRENT_BRANCH" != "$LAST_BRANCH" ]; then
+  if [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
     # Archive the previous run
     DATE=$(date +%Y-%m-%d)
     # Strip "ralph/" prefix from branch name for folder
-    FOLDER_NAME=$(echo "$LAST_BRANCH" | sed 's|^ralph/||')
+    FOLDER_NAME=$(echo "$PRD_BRANCH" | sed 's|^ralph/||')
     ARCHIVE_FOLDER="$ARCHIVE_DIR/$DATE-$FOLDER_NAME"
 
-    echo "Archiving previous run: $LAST_BRANCH"
+    echo "Archiving previous run: $PRD_BRANCH (current git branch: $CURRENT_GIT_BRANCH)"
     mkdir -p "$ARCHIVE_FOLDER"
-    [ -f "$PRD_FILE" ] && cp "$PRD_FILE" "$ARCHIVE_FOLDER/"
-    [ -f "$PROGRESS_FILE" ] && cp "$PROGRESS_FILE" "$ARCHIVE_FOLDER/"
+    [ -f "$PRD_FILE" ] && mv "$PRD_FILE" "$ARCHIVE_FOLDER/"
+    [ -f "$PROGRESS_FILE" ] && mv "$PROGRESS_FILE" "$ARCHIVE_FOLDER/"
     echo "   Archived to: $ARCHIVE_FOLDER"
-
-    # Reset progress file for new run
-    echo "# Ralph Progress Log" > "$PROGRESS_FILE"
-    echo "Started: $(date)" >> "$PROGRESS_FILE"
-    echo "---" >> "$PROGRESS_FILE"
-  fi
-fi
-
-# Track current branch
-if [ -f "$PRD_FILE" ]; then
-  CURRENT_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
-  if [ -n "$CURRENT_BRANCH" ]; then
-    echo "$CURRENT_BRANCH" > "$LAST_BRANCH_FILE"
   fi
 fi
 
@@ -143,6 +131,38 @@ if [ ! -f "$PRD_FILE" ]; then
     echo "Failed to create PRD file. Please check the output above."
     exit 1
   fi
+
+  PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+
+  if [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
+    echo ""
+    echo "PRD specifies branch: $PRD_BRANCH"
+    echo "Current branch: $CURRENT_GIT_BRANCH"
+
+    # Check if branch already exists
+    if git show-ref --verify --quiet "refs/heads/$PRD_BRANCH"; then
+      echo "Branch $PRD_BRANCH already exists, switching to it..."
+      git checkout "$PRD_BRANCH"
+    else
+      echo "Creating and switching to new branch: $PRD_BRANCH"
+      git checkout -b "$PRD_BRANCH"
+    fi
+    echo ""
+  fi
+
+  ARC_PROMPT="Commit archived tasks from previous run stored in .ralph/archive"
+  if [[ "$TOOL" == "amp" ]]; then
+    echo "$ARC_PROMPT" | amp --dangerously-allow-all
+  elif [[ "$TOOL" == "claude" ]]; then
+    echo "$ARC_PROMPT" | claude --dangerously-skip-permissions --print
+  else
+    if [[ -f "opencode.json" ]]; then
+    echo "$ARC_PROMPT" | opencode --config opencode.json run
+    else
+    echo "$ARC_PROMPT" | opencode run
+    fi
+  fi
+
 fi
 
 # Initialize progress file if it doesn't exist
