@@ -1,13 +1,15 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop
 # Based on original version from https://github.com/snarktank/ralph
-# Usage: ./ralph.sh [--tool amp|claude|opencode] [max_iterations]
+# Usage: ./ralph.sh [--tool amp|claude|opencode] [-w|--worktree] [max_iterations]
+#   -w, --worktree: Use git worktree for isolated work (creates ../repo-name-feature-name/)
 
 set -e
 
 # Parse arguments
 TOOL="opencode"
 MAX_ITERATIONS=100
+USE_WORKTREE=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -17,6 +19,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --tool=*)
       TOOL="${1#*=}"
+      shift
+      ;;
+    -w|--worktree)
+      USE_WORKTREE=true
       shift
       ;;
     *)
@@ -54,6 +60,11 @@ PROGRESS_FILE="$RALPH_DIR/progress.txt"
 ARCHIVE_DIR="$RALPH_DIR/archive"
 
 CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+# Get repository name for worktree naming
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "repo")
+ORIGINAL_DIR="$WORK_DIR"
+WORKTREE_DIR=""
 
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ]; then
@@ -134,10 +145,72 @@ if [ ! -f "$PRD_FILE" ]; then
 
   PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
 
-  if [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
-    echo ""
-    echo "PRD specifies branch: $PRD_BRANCH"
-    echo "Current branch: $CURRENT_GIT_BRANCH"
+  echo ""
+  echo "PRD specifies branch: $PRD_BRANCH"
+  echo "Current branch: $CURRENT_GIT_BRANCH"
+
+  # Setup worktree if requested and branch is specified
+  if [ "$USE_WORKTREE" = true ] && [ -n "$PRD_BRANCH" ]; then
+
+    if [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ] || [ -z "$CURRENT_GIT_BRANCH" ]; then
+      # Extract feature name without ralph/ prefix for worktree directory naming
+      FEATURE_NAME=$(echo "$PRD_BRANCH" | sed 's|^ralph/||')
+      WORKTREE_DIR="$ORIGINAL_DIR/../$REPO_NAME-$FEATURE_NAME"
+
+      echo "Setting up worktree at: $WORKTREE_DIR"
+
+      # Check if worktree already exists
+      if [ -d "$WORKTREE_DIR" ]; then
+        echo "Worktree directory already exists, using it..."
+      else
+        # Check if branch already exists
+        if git show-ref --verify --quiet "refs/heads/$PRD_BRANCH"; then
+          echo "Branch $PRD_BRANCH already exists, creating worktree from it..."
+          git worktree add "$WORKTREE_DIR" "$PRD_BRANCH"
+        else
+          echo "Creating new branch $PRD_BRANCH and worktree..."
+          git worktree add -b "$PRD_BRANCH" "$WORKTREE_DIR"
+        fi
+      fi
+
+      # Copy PRD and related files from original repo to worktree
+      ORIGINAL_RALPH="$ORIGINAL_DIR/.ralph"
+
+      # Change to worktree directory
+      cd "$WORKTREE_DIR"
+      WORK_DIR="$WORKTREE_DIR"
+      RALPH_DIR="$WORK_DIR/.ralph"
+      PRD_FILE="$RALPH_DIR/prd.json"
+      PROGRESS_FILE="$RALPH_DIR/progress.txt"
+      ARCHIVE_DIR="$RALPH_DIR/archive"
+      mkdir -p "$RALPH_DIR"
+
+      # Copy entire .ralph directory from original repo to worktree if it exists
+      if [ -d "$ORIGINAL_RALPH" ] && [ "$(ls -A "$ORIGINAL_RALPH" 2>/dev/null)" ]; then
+        echo "Copying .ralph directory from original repository to worktree..."
+        cp -r "$ORIGINAL_RALPH"/* "$RALPH_DIR/"
+      fi
+
+      # Clean up .ralph directory in original repository using git
+      echo "Cleaning up .ralph directory in original repository..."
+      cd "$ORIGINAL_DIR"
+      # This ensures .ralph is in clean committed state:
+      # 1. Reset any staged changes in .ralph
+      git reset HEAD .ralph 2>/dev/null || true
+      # 2. Restore deleted/modified tracked files to their committed state
+      git checkout HEAD -- .ralph 2>/dev/null || true
+      # 3. Remove all untracked files and directories (like archive/)
+      git clean -fd .ralph 2>/dev/null || true
+
+      # Return to worktree
+      cd "$WORKTREE_DIR"
+
+      echo "Switched to worktree: $WORKTREE_DIR"
+      echo "Original repository cleaned up"
+      echo ""
+    fi
+  elif [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
+    # just checkout the branch
 
     # Check if branch already exists
     if git show-ref --verify --quiet "refs/heads/$PRD_BRANCH"; then
@@ -150,6 +223,7 @@ if [ ! -f "$PRD_FILE" ]; then
     echo ""
   fi
 
+  # Commit archived tasks (only if we're in the working directory with archives)
   ARC_PROMPT="Commit archived tasks from previous run stored in .ralph/archive"
   if [[ "$TOOL" == "amp" ]]; then
     echo "$ARC_PROMPT" | amp --dangerously-allow-all
@@ -199,6 +273,20 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     echo ""
     echo "Ralph completed all tasks!"
     echo "Completed at iteration $i of $MAX_ITERATIONS"
+
+    # Cleanup worktree if used
+    if [ "$USE_WORKTREE" = true ] && [ -n "$WORKTREE_DIR" ]; then
+      echo ""
+      echo "Worktree is at: $WORKTREE_DIR"
+      echo "To merge changes, go to the original repository and run:"
+      echo "  git merge $PRD_BRANCH"
+      echo ""
+      echo "After merging, you can clean up the worktree with:"
+      echo "  cd $ORIGINAL_DIR"
+      echo "  git worktree remove $WORKTREE_DIR"
+      echo ""
+    fi
+
     exit 0
   fi
 
@@ -209,4 +297,15 @@ done
 echo ""
 echo "Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks."
 echo "Check $PROGRESS_FILE for status."
+
+# Cleanup info for worktree if used
+if [ "$USE_WORKTREE" = true ] && [ -n "$WORKTREE_DIR" ]; then
+  echo ""
+  echo "Worktree is at: $WORKTREE_DIR"
+  echo "To clean up the worktree later, run:"
+  echo "  cd $ORIGINAL_DIR"
+  echo "  git worktree remove $WORKTREE_DIR"
+  echo ""
+fi
+
 exit 1
