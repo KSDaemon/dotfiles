@@ -227,16 +227,36 @@ if [ ! -f "$PRD_FILE" ]; then
   fi
 
   # Commit archived tasks (only if we're in the working directory with archives)
-  ARC_PROMPT="Commit archived tasks from previous run stored in .ralph/archive"
+  if [ -d "$ARCHIVE_DIR" ] && [ "$(ls -A "$ARCHIVE_DIR" 2>/dev/null)" ]; then
+    echo ""
+    echo "Committing archived tasks from previous run..."
+    ARC_PROMPT="Commit archived tasks from previous run stored in .ralph/archive"
+    if [[ "$TOOL" == "amp" ]]; then
+      echo "$ARC_PROMPT" | amp --dangerously-allow-all
+    elif [[ "$TOOL" == "claude" ]]; then
+      echo "$ARC_PROMPT" | claude --dangerously-skip-permissions --print
+    else
+      if [[ -f "opencode.json" ]]; then
+        echo "$ARC_PROMPT" | opencode --config opencode.json run
+      else
+        echo "$ARC_PROMPT" | opencode run
+      fi
+    fi
+  fi
+
+  # Commit new PRD and task description
+  echo ""
+  echo "Committing new PRD and task description..."
+  PRD_COMMIT_PROMPT="Commit the newly created PRD files: .ralph/prd.json and any task description files in .ralph/tasks/"
   if [[ "$TOOL" == "amp" ]]; then
-    echo "$ARC_PROMPT" | amp --dangerously-allow-all
+    echo "$PRD_COMMIT_PROMPT" | amp --dangerously-allow-all
   elif [[ "$TOOL" == "claude" ]]; then
-    echo "$ARC_PROMPT" | claude --dangerously-skip-permissions --print
+    echo "$PRD_COMMIT_PROMPT" | claude --dangerously-skip-permissions --print
   else
     if [[ -f "opencode.json" ]]; then
-    echo "$ARC_PROMPT" | opencode --config opencode.json run
+      echo "$PRD_COMMIT_PROMPT" | opencode --config opencode.json run
     else
-    echo "$ARC_PROMPT" | opencode run
+      echo "$PRD_COMMIT_PROMPT" | opencode run
     fi
   fi
 

@@ -19,7 +19,7 @@ You are an autonomous coding agent working on a software project.
 
 APPEND to progress.txt (never replace, always append):
 ```
-## [Date/Time] - [Story ID]
+## [Date/Time in "YYYY-MM-DD hh:mm (timezone)" format] - [Story ID]
 - What was implemented
 - Files changed
 - **Learnings for future iterations:**

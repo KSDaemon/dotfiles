@@ -5,13 +5,13 @@ description: "Convert PRDs to prd.json format for the Ralph autonomous agent sys
 
 # Ralph PRD Converter
 
-Converts existing PRDs to the prd.json format that Ralph uses for autonomous execution.
+Converts the latest existing PRD to the prd.json format that Ralph uses for autonomous execution.
 
 ---
 
 ## The Job
 
-Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph directory.
+Take the latest created PRD from ".ralph/tasks/" directory (markdown file or text) and convert it to `prd.json` in your ".ralph/" directory.
 
 ---
 
