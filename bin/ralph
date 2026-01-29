@@ -153,8 +153,8 @@ if [ "$COMMAND" = "cleanup" ]; then
     echo ""
     echo "Committing cleanup..."
     git add .ralph/prd.json .ralph/progress.txt 2>/dev/null || true
-    git commit -m "chore: cleanup ralph PRD and progress files" 
-    
+    git commit -m "chore: cleanup ralph PRD and progress files"
+
     echo ""
     echo "Cleanup complete!"
   else
@@ -210,9 +210,8 @@ if [ "$PRD_EXISTS" = false ]; then
   echo "You need to generate requirements first."
   echo ""
   echo "Starting $TOOL to help you create a task description..."
-  echo "Use the PRD skill to generate a detailed requirements document, smth like:"
+  echo "Use the PRD skill to generate a detailed requirements document and answer the clarifying questions, smth like:"
   echo "Load the prd skill and create a PRD for [your feature description]"
-  echo "Answer the clarifying questions."
   echo ""
 
   # Start the tool in interactive mode
@@ -343,7 +342,7 @@ if [ "$PRD_EXISTS" = false ]; then
   echo ""
   echo "Committing new PRD and task description..."
   git add .ralph/prd.json .ralph/tasks/ 2>/dev/null || true
-  
+
   # Get PRD title for commit message
   PRD_TITLE=$(jq -r '.title // "New task"' "$PRD_FILE" 2>/dev/null || echo "New task")
   git commit -m "feat: add PRD for $PRD_TITLE"
