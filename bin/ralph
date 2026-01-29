@@ -5,7 +5,9 @@
 #   --tool: AI tool to use (opencode, amp, claude) - default: opencode
 #   -w, --worktree: Use git worktree for isolated work (creates ../repo-name-feature-name/)
 #   --max-iterations: Maximum number of iterations - default: 100
-#   command: Optional command (e.g., 'new' to force create new PRD)
+#   command: Optional command:
+#     - 'new': Force create new PRD (removes old PRD/progress files)
+#     - 'cleanup': Clean PRD/progress files and commit in current branch
 
 set -e
 
@@ -83,8 +85,91 @@ REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null 
 ORIGINAL_DIR="$WORK_DIR"
 WORKTREE_DIR=""
 
+# Handle 'cleanup' command - clean and commit PRD/progress files
+if [ "$COMMAND" = "cleanup" ]; then
+  echo ""
+  echo "Cleaning up PRD and progress files..."
+  
+  # Check if PRD exists and branch matches
+  if [ -f "$PRD_FILE" ]; then
+    PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+    
+    if [ -n "$PRD_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
+      echo "Error: Current branch ($CURRENT_GIT_BRANCH) doesn't match PRD branch ($PRD_BRANCH)"
+      echo "Cleanup can only be done on the branch specified in PRD."
+      exit 1
+    fi
+    
+    echo "Removing PRD and progress files..."
+    rm -f "$PRD_FILE"
+    rm -f "$PROGRESS_FILE"
+    
+    # Commit the cleanup
+    echo ""
+    echo "Committing cleanup..."
+    CLEANUP_PROMPT="Commit cleanup: remove .ralph/prd.json and .ralph/progress.txt files"
+    if [[ "$TOOL" == "amp" ]]; then
+      echo "$CLEANUP_PROMPT" | amp --dangerously-allow-all
+    elif [[ "$TOOL" == "claude" ]]; then
+      echo "$CLEANUP_PROMPT" | claude --dangerously-skip-permissions --print
+    else
+      if [[ -f "opencode.json" ]]; then
+        echo "$CLEANUP_PROMPT" | opencode --config opencode.json run
+      else
+        echo "$CLEANUP_PROMPT" | opencode run
+      fi
+    fi
+    
+    echo ""
+    echo "Cleanup complete!"
+  else
+    echo "No PRD file found. Nothing to clean up."
+  fi
+  
+  exit 0
+fi
+
+# Handle 'new' command - force clean start
+if [ "$COMMAND" = "new" ]; then
+  echo ""
+  echo "Starting new task (clean slate)..."
+  
+  # Remove old PRD and progress files
+  if [ -f "$PRD_FILE" ]; then
+    echo "Removing old PRD file: $PRD_FILE"
+    rm -f "$PRD_FILE"
+  fi
+  
+  if [ -f "$PROGRESS_FILE" ]; then
+    echo "Removing old progress file: $PROGRESS_FILE"
+    rm -f "$PROGRESS_FILE"
+  fi
+  
+  echo ""
+fi
+
+# Check if PRD exists and branch matches
+PRD_EXISTS=false
+if [ -f "$PRD_FILE" ]; then
+  PRD_EXISTS=true
+  PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+  
+  # If branch doesn't match, treat as if PRD doesn't exist
+  if [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
+    echo ""
+    echo "WARNING: PRD file exists but branch doesn't match!"
+    echo "  PRD branch: $PRD_BRANCH"
+    echo "  Current branch: $CURRENT_GIT_BRANCH"
+    echo ""
+    echo "Removing old PRD and starting fresh for current branch..."
+    rm -f "$PRD_FILE"
+    rm -f "$PROGRESS_FILE"
+    PRD_EXISTS=false
+  fi
+fi
+
 # Check if PRD exists, if not - guide user to create one
-if [ ! -f "$PRD_FILE" ]; then
+if [ "$PRD_EXISTS" = false ]; then
   echo ""
   echo "No PRD file found at $PRD_FILE"
   echo "You need to generate requirements first."
