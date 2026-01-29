@@ -1,7 +1,7 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop
 # Based on original version from https://github.com/snarktank/ralph
-# Usage: ./ralph.sh [--tool amp|claude|opencode] [-w|--worktree] [max_iterations]
+# Usage: ./ralph.sh [--tool amp|claude|opencode] [-w|--worktree] [. ]
 #   -w, --worktree: Use git worktree for isolated work (creates ../repo-name-feature-name/)
 
 set -e
@@ -60,7 +60,6 @@ PROMPT_FILE="$SCRIPT_DIR/../ralph/prompt.md"
 
 PRD_FILE="$RALPH_DIR/prd.json"
 PROGRESS_FILE="$RALPH_DIR/progress.txt"
-ARCHIVE_DIR="$RALPH_DIR/archive"
 
 CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 
@@ -68,26 +67,6 @@ CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "repo")
 ORIGINAL_DIR="$WORK_DIR"
 WORKTREE_DIR=""
-
-# Archive previous run if branch changed
-if [ -f "$PRD_FILE" ]; then
-  # Get the branch name from prd.json
-  PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
-
-  if [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
-    # Archive the previous run
-    DATE=$(date +%Y-%m-%d)
-    # Strip "ralph/" prefix from branch name for folder
-    FOLDER_NAME=$(echo "$PRD_BRANCH" | sed 's|^ralph/||')
-    ARCHIVE_FOLDER="$ARCHIVE_DIR/$DATE-$FOLDER_NAME"
-
-    echo "Archiving previous run: $PRD_BRANCH (current git branch: $CURRENT_GIT_BRANCH)"
-    mkdir -p "$ARCHIVE_FOLDER"
-    [ -f "$PRD_FILE" ] && mv "$PRD_FILE" "$ARCHIVE_FOLDER/"
-    [ -f "$PROGRESS_FILE" ] && mv "$PROGRESS_FILE" "$ARCHIVE_FOLDER/"
-    echo "   Archived to: $ARCHIVE_FOLDER"
-  fi
-fi
 
 # Check if PRD exists, if not - guide user to create one
 if [ ! -f "$PRD_FILE" ]; then
@@ -185,7 +164,6 @@ if [ ! -f "$PRD_FILE" ]; then
       RALPH_DIR="$WORK_DIR/.ralph"
       PRD_FILE="$RALPH_DIR/prd.json"
       PROGRESS_FILE="$RALPH_DIR/progress.txt"
-      ARCHIVE_DIR="$RALPH_DIR/archive"
       mkdir -p "$RALPH_DIR"
 
       # Copy entire .ralph directory from original repo to worktree if it exists
@@ -224,24 +202,6 @@ if [ ! -f "$PRD_FILE" ]; then
       git checkout -b "$PRD_BRANCH"
     fi
     echo ""
-  fi
-
-  # Commit archived tasks (only if we're in the working directory with archives)
-  if [ -d "$ARCHIVE_DIR" ] && [ "$(ls -A "$ARCHIVE_DIR" 2>/dev/null)" ]; then
-    echo ""
-    echo "Committing archived tasks from previous run..."
-    ARC_PROMPT="Commit archived tasks from previous run stored in .ralph/archive"
-    if [[ "$TOOL" == "amp" ]]; then
-      echo "$ARC_PROMPT" | amp --dangerously-allow-all
-    elif [[ "$TOOL" == "claude" ]]; then
-      echo "$ARC_PROMPT" | claude --dangerously-skip-permissions --print
-    else
-      if [[ -f "opencode.json" ]]; then
-        echo "$ARC_PROMPT" | opencode --config opencode.json run
-      else
-        echo "$ARC_PROMPT" | opencode run
-      fi
-    fi
   fi
 
   # Commit new PRD and task description
