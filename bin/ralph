@@ -344,7 +344,7 @@ if [ "$PRD_EXISTS" = false ]; then
   git add .ralph/prd.json .ralph/tasks/ 2>/dev/null || true
 
   # Get PRD title for commit message
-  PRD_TITLE=$(jq -r '.title // "New task"' "$PRD_FILE" 2>/dev/null || echo "New task")
+  PRD_TITLE=$(jq -r '.description // "New task"' "$PRD_FILE" 2>/dev/null || echo "New task")
   git commit -m "feat: add PRD for $PRD_TITLE"
 
 fi
