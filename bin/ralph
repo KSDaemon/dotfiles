@@ -345,7 +345,15 @@ if [ "$PRD_EXISTS" = false ]; then
 
   # Get PRD title for commit message
   PRD_TITLE=$(jq -r '.description // "New task"' "$PRD_FILE" 2>/dev/null || echo "New task")
-  git commit -m "feat: add PRD for $PRD_TITLE"
+  if ! git commit -m "feat: add PRD for $PRD_TITLE"; then
+    echo "Commit failed (possibly due to pre-commit hooks with auto-fixes)."
+    echo "Re-staging files and retrying commit..."
+    git add .ralph/ 2>/dev/null || true
+    git commit -m "feat: add PRD for $PRD_TITLE" || {
+      echo "Error: Commit failed after retry. Please fix issues manually."
+      exit 1
+    }
+  fi
 
 fi
 
