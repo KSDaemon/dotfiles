@@ -1,8 +1,11 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop
 # Based on original version from https://github.com/snarktank/ralph
-# Usage: ./ralph.sh [--tool amp|claude|opencode] [-w|--worktree] [. ]
+# Usage: ralph [--tool amp|claude|opencode] [-w|--worktree] [--max-iterations N] [command]
+#   --tool: AI tool to use (opencode, amp, claude) - default: opencode
 #   -w, --worktree: Use git worktree for isolated work (creates ../repo-name-feature-name/)
+#   --max-iterations: Maximum number of iterations - default: 100
+#   command: Optional command (e.g., 'new' to force create new PRD)
 
 set -e
 
@@ -13,6 +16,7 @@ trap 'echo ""; echo "Ralph interrupted by user. Exiting..."; exit 130' INT TERM
 TOOL="opencode"
 MAX_ITERATIONS=100
 USE_WORKTREE=false
+COMMAND=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -28,9 +32,20 @@ while [[ $# -gt 0 ]]; do
       USE_WORKTREE=true
       shift
       ;;
+    --max-iterations)
+      MAX_ITERATIONS="$2"
+      shift 2
+      ;;
+    --max-iterations=*)
+      MAX_ITERATIONS="${1#*=}"
+      shift
+      ;;
     *)
-      # Assume it's max_iterations if it's a number
-      if [[ "$1" =~ ^[0-9]+$ ]]; then
+      # Store as command if it's not a number
+      if [[ ! "$1" =~ ^[0-9]+$ ]]; then
+        COMMAND="$1"
+      else
+        # For backward compatibility: accept number as max_iterations
         MAX_ITERATIONS="$1"
       fi
       shift
