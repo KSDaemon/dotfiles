@@ -1,6 +1,7 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop
 # Based on original version from https://github.com/snarktank/ralph
+#
 # Usage: ralph [--tool amp|claude|opencode] [-w|--worktree] [--max-iterations N] [command]
 #   --tool: AI tool to use (opencode, amp, claude) - default: opencode
 #   -w, --worktree: Use git worktree for isolated work (creates ../repo-name-feature-name/)
@@ -40,13 +41,13 @@ Commands:
   cleanup                 Clean PRD/progress files and commit in current branch
 
 Examples:
-  ralph                   # Start or continue work with default settings
-  ralph new               # Start fresh with new PRD
-  ralph cleanup           # Clean up and commit PRD files
-  ralph --tool claude     # Use Claude instead of OpenCode
-  ralph -w new            # Create new PRD with worktree support
-                          # If repo is 'myapp' and PRD branch is 'ralph/feature-x'
-                          # Creates worktree at: ../myapp-feature-x/
+  ralph                      # Start or continue work with default settings
+  ralph new                  # Start fresh with new PRD
+  ralph cleanup              # Clean up and commit PRD files
+  ralph --tool claude        # Use Claude instead of OpenCode
+  ralph -w new               # Create new PRD with worktree support
+                             # If repo is 'myapp' and PRD branch is 'ralph/feature-x'
+                             # Creates worktree at: ../myapp-feature-x/
   ralph --max-iterations 50  # Run with 50 iterations max
 
 Worktree Details:
@@ -54,11 +55,9 @@ Worktree Details:
   Directory name format: <repository-name>-<feature-name>
   - Repository name: from git root directory name
   - Feature name: PRD branch name with 'ralph/' prefix stripped
-  
+
   Example: If you're in /home/user/myapp and PRD specifies branch 'ralph/add-auth',
            worktree will be created at: /home/user/myapp-add-auth/
-
-For more information, see: https://github.com/snarktank/ralph
 EOF
   exit 0
 }
@@ -135,43 +134,33 @@ WORKTREE_DIR=""
 if [ "$COMMAND" = "cleanup" ]; then
   echo ""
   echo "Cleaning up PRD and progress files..."
-  
+
   # Check if PRD exists and branch matches
   if [ -f "$PRD_FILE" ]; then
     PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
-    
+
     if [ -n "$PRD_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
       echo "Error: Current branch ($CURRENT_GIT_BRANCH) doesn't match PRD branch ($PRD_BRANCH)"
       echo "Cleanup can only be done on the branch specified in PRD."
       exit 1
     fi
-    
+
     echo "Removing PRD and progress files..."
     rm -f "$PRD_FILE"
     rm -f "$PROGRESS_FILE"
-    
-    # Commit the cleanup
+
+    # Commit the cleanup directly
     echo ""
     echo "Committing cleanup..."
-    CLEANUP_PROMPT="Commit cleanup: remove .ralph/prd.json and .ralph/progress.txt files"
-    if [[ "$TOOL" == "amp" ]]; then
-      echo "$CLEANUP_PROMPT" | amp --dangerously-allow-all
-    elif [[ "$TOOL" == "claude" ]]; then
-      echo "$CLEANUP_PROMPT" | claude --dangerously-skip-permissions --print
-    else
-      if [[ -f "opencode.json" ]]; then
-        echo "$CLEANUP_PROMPT" | opencode --config opencode.json run
-      else
-        echo "$CLEANUP_PROMPT" | opencode run
-      fi
-    fi
+    git add .ralph/prd.json .ralph/progress.txt 2>/dev/null || true
+    git commit -m "chore: cleanup ralph PRD and progress files" 
     
     echo ""
     echo "Cleanup complete!"
   else
     echo "No PRD file found. Nothing to clean up."
   fi
-  
+
   exit 0
 fi
 
@@ -179,18 +168,18 @@ fi
 if [ "$COMMAND" = "new" ]; then
   echo ""
   echo "Starting new task (clean slate)..."
-  
+
   # Remove old PRD and progress files
   if [ -f "$PRD_FILE" ]; then
     echo "Removing old PRD file: $PRD_FILE"
     rm -f "$PRD_FILE"
   fi
-  
+
   if [ -f "$PROGRESS_FILE" ]; then
     echo "Removing old progress file: $PROGRESS_FILE"
     rm -f "$PROGRESS_FILE"
   fi
-  
+
   echo ""
 fi
 
@@ -199,7 +188,7 @@ PRD_EXISTS=false
 if [ -f "$PRD_FILE" ]; then
   PRD_EXISTS=true
   PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
-  
+
   # If branch doesn't match, treat as if PRD doesn't exist
   if [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
     echo ""
@@ -353,18 +342,11 @@ if [ "$PRD_EXISTS" = false ]; then
   # Commit new PRD and task description
   echo ""
   echo "Committing new PRD and task description..."
-  PRD_COMMIT_PROMPT="Commit the newly created PRD files: .ralph/prd.json and any task description files in .ralph/tasks/"
-  if [[ "$TOOL" == "amp" ]]; then
-    echo "$PRD_COMMIT_PROMPT" | amp --dangerously-allow-all
-  elif [[ "$TOOL" == "claude" ]]; then
-    echo "$PRD_COMMIT_PROMPT" | claude --dangerously-skip-permissions --print
-  else
-    if [[ -f "opencode.json" ]]; then
-      echo "$PRD_COMMIT_PROMPT" | opencode --config opencode.json run
-    else
-      echo "$PRD_COMMIT_PROMPT" | opencode run
-    fi
-  fi
+  git add .ralph/prd.json .ralph/tasks/ 2>/dev/null || true
+  
+  # Get PRD title for commit message
+  PRD_TITLE=$(jq -r '.title // "New task"' "$PRD_FILE" 2>/dev/null || echo "New task")
+  git commit -m "feat: add PRD for $PRD_TITLE"
 
 fi
 
