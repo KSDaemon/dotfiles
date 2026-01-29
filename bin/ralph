@@ -27,8 +27,10 @@ Ralph Wiggum - Long-running AI agent loop
 Usage: ralph [OPTIONS] [COMMAND]
 
 Options:
-  --tool TOOL              AI tool to use: opencode, amp, or claude (default: opencode)
+  --tool TOOL             AI tool to use: opencode, amp, or claude (default: opencode)
   -w, --worktree          Use git worktree for isolated work
+                          Creates: ../repo-name-feature-name/
+                          (e.g., ../myapp-fix-bug/ for branch ralph/fix-bug)
   --max-iterations N      Maximum number of iterations (default: 100)
   -h, --help              Show this help message
 
@@ -43,7 +45,18 @@ Examples:
   ralph cleanup           # Clean up and commit PRD files
   ralph --tool claude     # Use Claude instead of OpenCode
   ralph -w new            # Create new PRD with worktree support
+                          # If repo is 'myapp' and PRD branch is 'ralph/feature-x'
+                          # Creates worktree at: ../myapp-feature-x/
   ralph --max-iterations 50  # Run with 50 iterations max
+
+Worktree Details:
+  The -w flag creates an isolated git worktree in a sibling directory.
+  Directory name format: <repository-name>-<feature-name>
+  - Repository name: from git root directory name
+  - Feature name: PRD branch name with 'ralph/' prefix stripped
+  
+  Example: If you're in /home/user/myapp and PRD specifies branch 'ralph/add-auth',
+           worktree will be created at: /home/user/myapp-add-auth/
 
 For more information, see: https://github.com/snarktank/ralph
 EOF
