@@ -1,14 +1,7 @@
 #!/bin/bash
 # Ralph Wiggum - Long-running AI agent loop
 # Based on original version from https://github.com/snarktank/ralph
-#
-# Usage: ralph [--tool amp|claude|opencode] [-w|--worktree] [--max-iterations N] [command]
-#   --tool: AI tool to use (opencode, amp, claude) - default: opencode
-#   -w, --worktree: Use git worktree for isolated work (creates ../repo-name-feature-name/)
-#   --max-iterations: Maximum number of iterations - default: 100
-#   command: Optional command:
-#     - 'new': Force create new PRD (removes old PRD/progress files)
-#     - 'cleanup': Clean PRD/progress files and commit in current branch
+# Modified and adopted by KSDaemon
 
 set -e
 
@@ -36,8 +29,8 @@ Options:
   -h, --help              Show this help message
 
 Commands:
-  (none)                  Continue existing task or create new PRD if none exists
-  new                     Force create new PRD (removes old PRD/progress files)
+  (none)                      Continue existing task or create new PRD if none exists
+  new                         Force create new PRD (removes old PRD/progress files)
   cleanup|finish|clean|clear  Clean PRD/progress files and commit in current branch
 
 Examples:
@@ -147,14 +140,24 @@ if [ "$COMMAND" = "cleanup" ] || [ "$COMMAND" = "finish" ] || [ "$COMMAND" = "cl
     fi
 
     echo "Removing PRD and progress files..."
-    rm -f "$PRD_FILE"
-    rm -f "$PROGRESS_FILE"
+    git rm -f "$PRD_FILE" "$PROGRESS_FILE" 2>/dev/null || {
+      rm -f "$PRD_FILE" "$PROGRESS_FILE"
+      git add "$PRD_FILE" "$PROGRESS_FILE" 2>/dev/null || true
+    }
 
     # Commit the cleanup directly
     echo ""
     echo "Committing cleanup..."
     git add .ralph/prd.json .ralph/progress.txt 2>/dev/null || true
-    git commit -m "chore: cleanup ralph PRD and progress files"
+    if ! git commit -m "chore: cleanup ralph PRD and progress files"; then
+      echo "Commit failed (possibly due to pre-commit hooks with auto-fixes)."
+      echo "Re-staging files and retrying commit..."
+      git add .ralph/ 2>/dev/null || true
+      git commit -m "chore: cleanup ralph PRD and progress files" || {
+        echo "Error: Commit failed after retry. Please fix issues manually."
+        exit 1
+      }
+    fi
 
     echo ""
     echo "Cleanup complete!"
