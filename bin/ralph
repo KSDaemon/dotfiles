@@ -38,12 +38,13 @@ Options:
 Commands:
   (none)                  Continue existing task or create new PRD if none exists
   new                     Force create new PRD (removes old PRD/progress files)
-  cleanup                 Clean PRD/progress files and commit in current branch
+  cleanup|finish|clean|clear  Clean PRD/progress files and commit in current branch
 
 Examples:
   ralph                      # Start or continue work with default settings
   ralph new                  # Start fresh with new PRD
-  ralph cleanup              # Clean up and commit PRD files
+  ralph cleanup              # Clean up and commit PRD files (finish/clean/clear also work)
+  ralph finish               # Same as cleanup - removes PRD and commits
   ralph --tool claude        # Use Claude instead of OpenCode
   ralph -w new               # Create new PRD with worktree support
                              # If repo is 'myapp' and PRD branch is 'ralph/feature-x'
@@ -130,8 +131,8 @@ REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null 
 ORIGINAL_DIR="$WORK_DIR"
 WORKTREE_DIR=""
 
-# Handle 'cleanup' command - clean and commit PRD/progress files
-if [ "$COMMAND" = "cleanup" ]; then
+# Handle 'cleanup' command and its aliases - clean and commit PRD/progress files
+if [ "$COMMAND" = "cleanup" ] || [ "$COMMAND" = "finish" ] || [ "$COMMAND" = "clean" ] || [ "$COMMAND" = "clear" ]; then
   echo ""
   echo "Cleaning up PRD and progress files..."
 
