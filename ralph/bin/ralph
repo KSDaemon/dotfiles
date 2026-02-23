@@ -1,0 +1,433 @@
+#!/bin/bash
+# Ralph Wiggum - Long-running AI agent loop
+# Based on original version from https://github.com/snarktank/ralph
+# Modified and adopted by KSDaemon
+
+set -e
+
+# Handle Ctrl+C gracefully - exit immediately without running cleanup commands
+trap 'echo ""; echo "Ralph interrupted by user. Exiting..."; exit 130' INT TERM
+
+# Parse arguments
+TOOL="opencode"
+MAX_ITERATIONS=100
+USE_WORKTREE=false
+COMMAND=""
+
+show_help() {
+  cat << EOF
+Ralph Wiggum - Long-running AI agent loop
+
+Usage: ralph [OPTIONS] [COMMAND]
+
+Options:
+  --tool TOOL             AI tool to use: opencode, amp, or claude (default: opencode)
+  -w, --worktree          Use git worktree for isolated work
+                          Creates: ../repo-name-feature-name/
+                          (e.g., ../myapp-fix-bug/ for branch ralph/fix-bug)
+  --max-iterations N      Maximum number of iterations (default: 100)
+  -h, --help              Show this help message
+
+Commands:
+  (none)                      Continue existing task or create new PRD if none exists
+  new                         Force create new PRD (removes old PRD/progress files)
+  cleanup|finish|clean|clear  Clean PRD/progress files and commit in current branch
+
+Examples:
+  ralph                      # Start or continue work with default settings
+  ralph new                  # Start fresh with new PRD
+  ralph cleanup              # Clean up and commit PRD files (finish/clean/clear also work)
+  ralph finish               # Same as cleanup - removes PRD and commits
+  ralph --tool claude        # Use Claude instead of OpenCode
+  ralph -w new               # Create new PRD with worktree support
+                             # If repo is 'myapp' and PRD branch is 'ralph/feature-x'
+                             # Creates worktree at: ../myapp-feature-x/
+  ralph --max-iterations 50  # Run with 50 iterations max
+
+Worktree Details:
+  The -w flag creates an isolated git worktree in a sibling directory.
+  Directory name format: <repository-name>-<feature-name>
+  - Repository name: from git root directory name
+  - Feature name: PRD branch name with 'ralph/' prefix stripped
+
+  Example: If you're in /home/user/myapp and PRD specifies branch 'ralph/add-auth',
+           worktree will be created at: /home/user/myapp-add-auth/
+EOF
+  exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+      show_help
+      ;;
+    --tool)
+      TOOL="$2"
+      shift 2
+      ;;
+    --tool=*)
+      TOOL="${1#*=}"
+      shift
+      ;;
+    -w|--worktree)
+      USE_WORKTREE=true
+      shift
+      ;;
+    --max-iterations)
+      MAX_ITERATIONS="$2"
+      shift 2
+      ;;
+    --max-iterations=*)
+      MAX_ITERATIONS="${1#*=}"
+      shift
+      ;;
+    *)
+      # Store as command if it's not a number
+      if [[ ! "$1" =~ ^[0-9]+$ ]]; then
+        COMMAND="$1"
+      else
+        # For backward compatibility: accept number as max_iterations
+        MAX_ITERATIONS="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Validate tool choice
+if [[ "$TOOL" != "amp" && "$TOOL" != "claude" && "$TOOL" != "opencode" ]]; then
+  echo "Error: Invalid tool '$TOOL'. Must be 'amp', 'claude', or 'opencode'."
+  exit 1
+fi
+
+# Check tool is installed
+if ! command -v "$TOOL" &> /dev/null; then
+  echo "Error: $TOOL not found in PATH."
+  exit 1
+fi
+
+WORK_DIR="$(pwd)"
+RALPH_DIR="$WORK_DIR/.ralph"
+mkdir -p "$RALPH_DIR"
+
+# Get script directory for prompt file
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROMPT_FILE="$SCRIPT_DIR/../ralph/prompt.md"
+
+PRD_FILE="$RALPH_DIR/prd.json"
+PROGRESS_FILE="$RALPH_DIR/progress.txt"
+
+CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+# Get repository name for worktree naming
+REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "repo")
+ORIGINAL_DIR="$WORK_DIR"
+WORKTREE_DIR=""
+
+# Handle 'cleanup' command and its aliases - clean and commit PRD/progress files
+if [ "$COMMAND" = "cleanup" ] || [ "$COMMAND" = "finish" ] || [ "$COMMAND" = "clean" ] || [ "$COMMAND" = "clear" ]; then
+  echo ""
+  echo "Cleaning up PRD and progress files..."
+
+  # Check if PRD exists and branch matches
+  if [ -f "$PRD_FILE" ]; then
+    PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+
+    if [ -n "$PRD_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
+      echo "Error: Current branch ($CURRENT_GIT_BRANCH) doesn't match PRD branch ($PRD_BRANCH)"
+      echo "Cleanup can only be done on the branch specified in PRD."
+      exit 1
+    fi
+
+    echo "Removing PRD and progress files..."
+    git rm -f "$PRD_FILE" "$PROGRESS_FILE" 2>/dev/null || {
+      rm -f "$PRD_FILE" "$PROGRESS_FILE"
+      git add "$PRD_FILE" "$PROGRESS_FILE" 2>/dev/null || true
+    }
+
+    # Commit the cleanup directly
+    echo ""
+    echo "Committing cleanup..."
+    git add .ralph/prd.json .ralph/progress.txt 2>/dev/null || true
+    if ! git commit -m "chore: cleanup ralph PRD and progress files"; then
+      echo "Commit failed (possibly due to pre-commit hooks with auto-fixes)."
+      echo "Re-staging files and retrying commit..."
+      git add .ralph/ 2>/dev/null || true
+      git commit -m "chore: cleanup ralph PRD and progress files" || {
+        echo "Error: Commit failed after retry. Please fix issues manually."
+        exit 1
+      }
+    fi
+
+    echo ""
+    echo "Cleanup complete!"
+  else
+    echo "No PRD file found. Nothing to clean up."
+  fi
+
+  exit 0
+fi
+
+# Handle 'new' command - force clean start
+if [ "$COMMAND" = "new" ]; then
+  echo ""
+  echo "Starting new task (clean slate)..."
+
+  # Remove old PRD and progress files
+  if [ -f "$PRD_FILE" ]; then
+    echo "Removing old PRD file: $PRD_FILE"
+    rm -f "$PRD_FILE"
+  fi
+
+  if [ -f "$PROGRESS_FILE" ]; then
+    echo "Removing old progress file: $PROGRESS_FILE"
+    rm -f "$PROGRESS_FILE"
+  fi
+
+  echo ""
+fi
+
+# Check if PRD exists and branch matches
+PRD_EXISTS=false
+if [ -f "$PRD_FILE" ]; then
+  PRD_EXISTS=true
+  PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+
+  # If branch doesn't match, treat as if PRD doesn't exist
+  if [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
+    echo ""
+    echo "WARNING: PRD file exists but branch doesn't match!"
+    echo "  PRD branch: $PRD_BRANCH"
+    echo "  Current branch: $CURRENT_GIT_BRANCH"
+    echo ""
+    echo "Removing old PRD and starting fresh for current branch..."
+    rm -f "$PRD_FILE"
+    rm -f "$PROGRESS_FILE"
+    PRD_EXISTS=false
+  fi
+fi
+
+# Check if PRD exists, if not - guide user to create one
+if [ "$PRD_EXISTS" = false ]; then
+  echo ""
+  echo "No PRD file found at $PRD_FILE"
+  echo "You need to generate requirements first."
+  echo ""
+  echo "Starting $TOOL to help you create a task description..."
+  echo "Use the PRD skill to generate a detailed requirements document and answer the clarifying questions, smth like:"
+  echo "Load the prd skill and create a PRD for [your feature description]"
+  echo ""
+
+  # Start the tool in interactive mode
+  if [[ "$TOOL" == "amp" ]]; then
+    amp
+  elif [[ "$TOOL" == "claude" ]]; then
+    claude
+  else
+    if [[ -f "opencode.json" ]]; then
+      opencode --config opencode.json
+    else
+      opencode
+    fi
+  fi
+
+  echo ""
+  echo "Now converting the created PRD to prd.json format..."
+
+  # Find the latest PRD file in tasks/
+  LATEST_PRD=$(ls -t "$RALPH_DIR/tasks/prd-"*.md 2>/dev/null | head -1)
+
+  if [ -n "$LATEST_PRD" ] && [ -f "$LATEST_PRD" ]; then
+    echo "Found PRD: $LATEST_PRD"
+    # Convert to prd.json
+    CONVERT_PROMPT="Load the ralph skill and convert $LATEST_PRD to prd.json"
+    if [[ "$TOOL" == "amp" ]]; then
+      echo "$CONVERT_PROMPT" | amp --dangerously-allow-all
+    elif [[ "$TOOL" == "claude" ]]; then
+      echo "$CONVERT_PROMPT" | claude --dangerously-skip-permissions --print
+    else
+      if [[ -f "opencode.json" ]]; then
+        echo "$CONVERT_PROMPT" | opencode --config opencode.json run
+      else
+        echo "$CONVERT_PROMPT" | opencode run
+      fi
+    fi
+  else
+    echo "No PRD file found in tasks/ directory. Please create one manually."
+    exit 1
+  fi
+
+  # Check if PRD was created successfully
+  if [ ! -f "$PRD_FILE" ]; then
+    echo "Failed to create PRD file. Please check the output above."
+    exit 1
+  fi
+
+  PRD_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
+
+  echo ""
+  echo "PRD specifies branch: $PRD_BRANCH"
+  echo "Current branch: $CURRENT_GIT_BRANCH"
+
+  # Setup worktree if requested and branch is specified
+  if [ "$USE_WORKTREE" = true ] && [ -n "$PRD_BRANCH" ]; then
+
+    if [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ] || [ -z "$CURRENT_GIT_BRANCH" ]; then
+      # Extract feature name without ralph/ prefix for worktree directory naming
+      FEATURE_NAME=$(echo "$PRD_BRANCH" | sed 's|^ralph/||')
+      WORKTREE_DIR="$ORIGINAL_DIR/../$REPO_NAME-$FEATURE_NAME"
+
+      echo "Setting up worktree at: $WORKTREE_DIR"
+
+      # Check if worktree already exists
+      if [ -d "$WORKTREE_DIR" ]; then
+        echo "Worktree directory already exists, using it..."
+      else
+        # Check if branch already exists
+        if git show-ref --verify --quiet "refs/heads/$PRD_BRANCH"; then
+          echo "Branch $PRD_BRANCH already exists, creating worktree from it..."
+          git worktree add "$WORKTREE_DIR" "$PRD_BRANCH"
+        else
+          echo "Creating new branch $PRD_BRANCH and worktree..."
+          git worktree add -b "$PRD_BRANCH" "$WORKTREE_DIR"
+        fi
+      fi
+
+      # Copy PRD and related files from original repo to worktree
+      ORIGINAL_RALPH="$ORIGINAL_DIR/.ralph"
+
+      # Change to worktree directory
+      cd "$WORKTREE_DIR"
+      WORK_DIR="$WORKTREE_DIR"
+      RALPH_DIR="$WORK_DIR/.ralph"
+      PRD_FILE="$RALPH_DIR/prd.json"
+      PROGRESS_FILE="$RALPH_DIR/progress.txt"
+      mkdir -p "$RALPH_DIR"
+
+      # Copy entire .ralph directory from original repo to worktree if it exists
+      if [ -d "$ORIGINAL_RALPH" ] && [ "$(ls -A "$ORIGINAL_RALPH" 2>/dev/null)" ]; then
+        echo "Copying .ralph directory from original repository to worktree..."
+        cp -r "$ORIGINAL_RALPH"/* "$RALPH_DIR/"
+      fi
+
+      # Clean up .ralph directory in original repository using git
+      echo "Cleaning up .ralph directory in original repository..."
+      cd "$ORIGINAL_DIR"
+      # This ensures .ralph is in clean committed state:
+      # 1. Reset any staged changes in .ralph
+      git reset HEAD .ralph 2>/dev/null || true
+      # 2. Restore deleted/modified tracked files to their committed state
+      git checkout HEAD -- .ralph 2>/dev/null || true
+      # 3. Remove all untracked files and directories (like archive/)
+      git clean -fd .ralph 2>/dev/null || true
+
+      # Return to worktree
+      cd "$WORKTREE_DIR"
+
+      echo "Switched to worktree: $WORKTREE_DIR"
+      echo "Original repository cleaned up"
+      echo ""
+    fi
+  elif [ -n "$PRD_BRANCH" ] && [ -n "$CURRENT_GIT_BRANCH" ] && [ "$PRD_BRANCH" != "$CURRENT_GIT_BRANCH" ]; then
+    # just checkout the branch
+
+    # Check if branch already exists
+    if git show-ref --verify --quiet "refs/heads/$PRD_BRANCH"; then
+      echo "Branch $PRD_BRANCH already exists, switching to it..."
+      git checkout "$PRD_BRANCH"
+    else
+      echo "Creating and switching to new branch: $PRD_BRANCH"
+      git checkout -b "$PRD_BRANCH"
+    fi
+    echo ""
+  fi
+
+  # Commit new PRD and task description
+  echo ""
+  echo "Committing new PRD and task description..."
+  git add .ralph/prd.json .ralph/tasks/ 2>/dev/null || true
+
+  # Get PRD title for commit message
+  PRD_TITLE=$(jq -r '.description // "New task"' "$PRD_FILE" 2>/dev/null || echo "New task")
+  if ! git commit -m "feat: add PRD for $PRD_TITLE"; then
+    echo "Commit failed (possibly due to pre-commit hooks with auto-fixes)."
+    echo "Re-staging files and retrying commit..."
+    git add .ralph/ 2>/dev/null || true
+    git commit -m "feat: add PRD for $PRD_TITLE" || {
+      echo "Error: Commit failed after retry. Please fix issues manually."
+      exit 1
+    }
+  fi
+
+fi
+
+# Initialize progress file if it doesn't exist
+if [ ! -f "$PROGRESS_FILE" ]; then
+  echo "# Ralph Progress Log" > "$PROGRESS_FILE"
+  echo "Started: $(date)" >> "$PROGRESS_FILE"
+  echo "---" >> "$PROGRESS_FILE"
+fi
+
+echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
+
+for i in $(seq 1 $MAX_ITERATIONS); do
+  echo ""
+  echo "==============================================================="
+  echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
+  echo "==============================================================="
+
+
+  # Run the selected tool with the ralph prompt
+  if [[ "$TOOL" == "amp" ]]; then
+    OUTPUT=$(cat "$PROMPT_FILE" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+  elif [[ "$TOOL" == "claude" ]]; then
+    OUTPUT=$(claude --dangerously-skip-permissions --print < "$PROMPT_FILE" 2>&1 | tee /dev/stderr) || true
+  else
+    if [[ ! -f "opencode.json" ]]; then
+      OUTPUT=$(cat "$PROMPT_FILE" | opencode run 2>&1 | tee /dev/stderr) || true
+    else
+      OUTPUT=$(cat "$PROMPT_FILE" | opencode --config opencode.json run 2>&1 | tee /dev/stderr) || true
+    fi
+  fi
+
+  # Check for completion signal
+  if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
+    echo ""
+    echo "Ralph completed all tasks!"
+    echo "Completed at iteration $i of $MAX_ITERATIONS"
+
+    # Cleanup worktree if used
+    if [ "$USE_WORKTREE" = true ] && [ -n "$WORKTREE_DIR" ]; then
+      echo ""
+      echo "Worktree is at: $WORKTREE_DIR"
+      echo "To merge changes, go to the original repository and run:"
+      echo "  git merge $PRD_BRANCH"
+      echo ""
+      echo "After merging, you can clean up the worktree with:"
+      echo "  cd $ORIGINAL_DIR"
+      echo "  git worktree remove $WORKTREE_DIR"
+      echo ""
+    fi
+
+    exit 0
+  fi
+
+  echo "Iteration $i complete. Continuing..."
+  sleep 2
+done
+
+echo ""
+echo "Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks."
+echo "Check $PROGRESS_FILE for status."
+
+# Cleanup info for worktree if used
+if [ "$USE_WORKTREE" = true ] && [ -n "$WORKTREE_DIR" ]; then
+  echo ""
+  echo "Worktree is at: $WORKTREE_DIR"
+  echo "To clean up the worktree later, run:"
+  echo "  cd $ORIGINAL_DIR"
+  echo "  git worktree remove $WORKTREE_DIR"
+  echo ""
+fi
+
+exit 1
