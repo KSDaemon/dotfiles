@@ -1,1 +1,4 @@
 *.zwc
+
+# Built Go binaries
+ralph/bin/ralph-admin
