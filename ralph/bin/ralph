@@ -5,8 +5,99 @@
 
 set -e
 
-# Handle Ctrl+C gracefully - exit immediately without running cleanup commands
-trap 'echo ""; echo "Ralph interrupted by user. Exiting..."; exit 130' INT TERM
+# === Session Registry ===
+# Ralph sessions are registered in a file-based registry so that
+# ralph-admin TUI can discover and monitor running sessions.
+
+RALPH_REGISTRY_DIR="${TMPDIR:-/tmp}/ralph-sessions"
+mkdir -p "$RALPH_REGISTRY_DIR"
+
+# Generate unique session ID
+SESSION_ID=""
+SESSION_FILE=""
+
+generate_session_id() {
+  if command -v uuidgen &> /dev/null; then
+    SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+  elif [ -f /proc/sys/kernel/random/uuid ]; then
+    SESSION_ID=$(cat /proc/sys/kernel/random/uuid)
+  else
+    SESSION_ID="$$-$(date +%s)-$RANDOM"
+  fi
+  SESSION_FILE="$RALPH_REGISTRY_DIR/$SESSION_ID.json"
+  SESSION_LOG="$RALPH_REGISTRY_DIR/$SESSION_ID.log"
+}
+
+register_session() {
+  local project_name="${1:-unknown}"
+  local branch="${2:-}"
+  local prd_desc="${3:-}"
+  local work_dir="${4:-$(pwd)}"
+  local worktree_dir="${5:-}"
+  local started_at
+  started_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  # Initialize log file
+  : > "$SESSION_LOG"
+
+  # Build JSON with jq
+  jq -n \
+    --argjson pid "$$" \
+    --arg tool "$TOOL" \
+    --arg project "$project_name" \
+    --arg work_dir "$work_dir" \
+    --arg branch "$branch" \
+    --arg prd_description "$prd_desc" \
+    --argjson current_iteration 0 \
+    --argjson max_iterations "$MAX_ITERATIONS" \
+    --argjson use_worktree "$USE_WORKTREE" \
+    --arg worktree_dir "$worktree_dir" \
+    --arg started_at "$started_at" \
+    --arg last_heartbeat "$started_at" \
+    --arg status "running" \
+    --arg log_file "$SESSION_LOG" \
+    '{
+      pid: $pid,
+      tool: $tool,
+      project: $project,
+      work_dir: $work_dir,
+      branch: $branch,
+      prd_description: $prd_description,
+      current_iteration: $current_iteration,
+      max_iterations: $max_iterations,
+      use_worktree: $use_worktree,
+      worktree_dir: $worktree_dir,
+      started_at: $started_at,
+      last_heartbeat: $last_heartbeat,
+      status: $status,
+      log_file: $log_file
+    }' > "$SESSION_FILE"
+}
+
+update_heartbeat() {
+  local iteration="${1:-0}"
+  local now
+  now=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  if [ -f "$SESSION_FILE" ]; then
+    jq \
+      --argjson iter "$iteration" \
+      --arg hb "$now" \
+      '.current_iteration = $iter | .last_heartbeat = $hb' \
+      "$SESSION_FILE" > "$SESSION_FILE.tmp" && mv "$SESSION_FILE.tmp" "$SESSION_FILE"
+  fi
+}
+
+update_session_status() {
+  local new_status="$1"
+  if [ -f "$SESSION_FILE" ]; then
+    jq --arg s "$new_status" '.status = $s' \
+      "$SESSION_FILE" > "$SESSION_FILE.tmp" && mv "$SESSION_FILE.tmp" "$SESSION_FILE"
+  fi
+}
+
+# Handle Ctrl+C gracefully - mark session as interrupted and exit
+trap 'echo ""; echo "Ralph interrupted by user. Exiting..."; update_session_status "interrupted"; exit 130' INT TERM
 
 # Parse arguments
 TOOL="opencode"
@@ -368,6 +459,16 @@ if [ ! -f "$PROGRESS_FILE" ]; then
   echo "---" >> "$PROGRESS_FILE"
 fi
 
+# === Register session in registry ===
+generate_session_id
+
+# Extract info for session registration
+SESSION_PROJECT=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")
+SESSION_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+SESSION_PRD_DESC=$(jq -r '.description // ""' "$PRD_FILE" 2>/dev/null || echo "")
+
+register_session "$SESSION_PROJECT" "$SESSION_BRANCH" "$SESSION_PRD_DESC" "$WORK_DIR" "$WORKTREE_DIR"
+
 echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
@@ -376,17 +477,21 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
   echo "==============================================================="
 
+  # Update session heartbeat at start of each iteration
+  update_heartbeat "$i"
+
 
   # Run the selected tool with the ralph prompt
+  # Output goes to: stderr (terminal), session log file, and captured in $OUTPUT
   if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(cat "$PROMPT_FILE" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+    OUTPUT=$(cat "$PROMPT_FILE" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr -a "$SESSION_LOG") || true
   elif [[ "$TOOL" == "claude" ]]; then
-    OUTPUT=$(claude --dangerously-skip-permissions --print < "$PROMPT_FILE" 2>&1 | tee /dev/stderr) || true
+    OUTPUT=$(claude --dangerously-skip-permissions --print < "$PROMPT_FILE" 2>&1 | tee /dev/stderr -a "$SESSION_LOG") || true
   else
     if [[ ! -f "opencode.json" ]]; then
-      OUTPUT=$(cat "$PROMPT_FILE" | opencode run 2>&1 | tee /dev/stderr) || true
+      OUTPUT=$(cat "$PROMPT_FILE" | opencode run 2>&1 | tee /dev/stderr -a "$SESSION_LOG") || true
     else
-      OUTPUT=$(cat "$PROMPT_FILE" | opencode --config opencode.json run 2>&1 | tee /dev/stderr) || true
+      OUTPUT=$(cat "$PROMPT_FILE" | opencode --config opencode.json run 2>&1 | tee /dev/stderr -a "$SESSION_LOG") || true
     fi
   fi
 
@@ -409,6 +514,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       echo ""
     fi
 
+    update_session_status "completed"
     exit 0
   fi
 
@@ -430,4 +536,5 @@ if [ "$USE_WORKTREE" = true ] && [ -n "$WORKTREE_DIR" ]; then
   echo ""
 fi
 
+update_session_status "max_iterations_reached"
 exit 1
