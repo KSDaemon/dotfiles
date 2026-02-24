@@ -13,21 +13,13 @@ import (
 
 const (
 	logMaxBytes = 32 * 1024 // read last 32KB of log
-
-	// Lines reserved for title (1) + header columns (~8) + footer (2) + gaps (3)
-	reservedLines = 14
 )
 
 var (
-	// Panel border style
-	panelBorderStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(colorDim)
-
-	panelTitleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorCyan).
-			PaddingLeft(1)
+	// Border style for all panels
+	borderStyle = lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(colorDim)
 )
 
 // updateDetail handles key events in the detail view.
@@ -69,117 +61,132 @@ func (m Model) viewDetail() string {
 	}
 
 	sess := m.selected
-	var b strings.Builder
-
-	// Title
-	title := fmt.Sprintf("Ralph Admin - %s", sess.Project)
-	b.WriteString(titleStyle.Render(title))
-	b.WriteString("\n")
-
-	// === Two-column header: Info (left) | Timing (right) ===
-	halfWidth := m.width / 2
-	if halfWidth < 40 {
-		halfWidth = 40
+	termW := m.width
+	if termW < 60 {
+		termW = 80
 	}
 
-	// Left column: session & project info
-	var left strings.Builder
-	left.WriteString(detailRow("Status", statusStyle(sess.DisplayStatus()).Render(sess.DisplayStatus())))
-	left.WriteString(detailRow("Branch", sess.Branch))
-	left.WriteString(detailRow("Directory", sess.WorkDir))
+	// === Title (1 line + newline) ===
+	title := titleStyle.Render(fmt.Sprintf("Ralph Admin - %s", sess.Project))
+
+	// === Header: two bordered boxes side by side ===
+	// Each box gets roughly half the width minus gap and borders
+	// Border takes 2 chars on each side = 4 per box, plus 1 gap = 9 total
+	headerInnerW := (termW - 9) / 2
+	if headerInnerW < 30 {
+		headerInnerW = 30
+	}
+
+	// Left box: project info
+	var leftRows []string
+	leftRows = append(leftRows, detailRowStr("Status", statusStyle(sess.DisplayStatus()).Render(sess.DisplayStatus())))
+	leftRows = append(leftRows, detailRowStr("Branch", sess.Branch))
+	leftRows = append(leftRows, detailRowStr("Directory", sess.WorkDir))
 	if sess.UseWorktree && sess.WorktreeDir != "" {
-		left.WriteString(detailRow("Worktree", sess.WorktreeDir))
+		leftRows = append(leftRows, detailRowStr("Worktree", sess.WorktreeDir))
 	}
-	left.WriteString(detailRow("Tool", sess.Tool))
+	leftRows = append(leftRows, detailRowStr("Tool", sess.Tool))
 	if sess.PRDDescription != "" {
 		desc := sess.PRDDescription
-		maxDesc := halfWidth - 22
-		if maxDesc > 0 && len(desc) > maxDesc {
+		maxDesc := headerInnerW - 14 // 14 = label width + spacing
+		if maxDesc > 10 && len(desc) > maxDesc {
 			desc = desc[:maxDesc-3] + "..."
 		}
-		left.WriteString(detailRow("PRD", desc))
+		leftRows = append(leftRows, detailRowStr("PRD", desc))
 	}
 
-	// Right column: timing & iteration
-	var right strings.Builder
-	right.WriteString(detailRow("PID", fmt.Sprintf("%d", sess.PID)))
-	right.WriteString(detailRow("Iteration", sess.IterationProgress()))
-	right.WriteString(detailRow("Started", sess.StartedAt.Local().Format("2006-01-02 15:04:05")))
-	right.WriteString(detailRow("Uptime", sess.FormatUptime()))
-	right.WriteString(detailRow("Heartbeat", sess.FormatHeartbeat()))
+	// Right box: timing
+	var rightRows []string
+	rightRows = append(rightRows, detailRowStr("PID", fmt.Sprintf("%d", sess.PID)))
+	rightRows = append(rightRows, detailRowStr("Iteration", sess.IterationProgress()))
+	rightRows = append(rightRows, detailRowStr("Started", sess.StartedAt.Local().Format("2006-01-02 15:04:05")))
+	rightRows = append(rightRows, detailRowStr("Uptime", sess.FormatUptime()))
+	rightRows = append(rightRows, detailRowStr("Heartbeat", sess.FormatHeartbeat()))
 	if sess.CurrentIteration > 0 {
 		avgDuration := sess.Uptime() / max(1, time.Duration(sess.CurrentIteration))
-		right.WriteString(detailRow("Avg Iter", formatDurationShort(avgDuration)))
+		rightRows = append(rightRows, detailRowStr("Avg Iter", formatDurationShort(avgDuration)))
 	}
 
-	leftBlock := lipgloss.NewStyle().Width(halfWidth).Render(left.String())
-	rightBlock := lipgloss.NewStyle().Width(halfWidth).Render(right.String())
-	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, leftBlock, rightBlock))
+	// Equalize row count so both boxes have same height
+	maxRows := len(leftRows)
+	if len(rightRows) > maxRows {
+		maxRows = len(rightRows)
+	}
+	for len(leftRows) < maxRows {
+		leftRows = append(leftRows, "")
+	}
+	for len(rightRows) < maxRows {
+		rightRows = append(rightRows, "")
+	}
+
+	leftBox := borderStyle.Width(headerInnerW).Render(strings.Join(leftRows, "\n"))
+	rightBox := borderStyle.Width(headerInnerW).Render(strings.Join(rightRows, "\n"))
+	header := lipgloss.JoinHorizontal(lipgloss.Top, leftBox, " ", rightBox)
+
+	// Count how many lines the header section takes
+	headerLines := 1 + lipgloss.Height(header) // 1 for title
+	// Footer: 1 line for help (+ 1 potential status message)
+	footerLines := 2
 
 	// === Bottom panels ===
-	panelHeight := m.height - reservedLines
-	if panelHeight < 5 {
-		panelHeight = 5
+	// Total height for panels = terminal height - header - footer
+	panelTotalH := m.height - headerLines - footerLines
+	if panelTotalH < 5 {
+		panelTotalH = 5
+	}
+	// Inner height = total - 2 (border top + bottom) - 1 (title inside panel)
+	panelContentH := panelTotalH - 3
+	if panelContentH < 2 {
+		panelContentH = 2
 	}
 
-	panelWidth := m.width
-	if panelWidth < 40 {
-		panelWidth = 80
-	}
-
+	var panels string
 	switch m.detailPanel {
 	case panelSplit:
-		// Account for 2 borders (left+right) per panel = 4 chars each, plus 1 char gap
-		innerPerPanel := (panelWidth - 9) / 2 // 4+4+1 = 9 chars for borders + gap
-		if innerPerPanel < 20 {
-			innerPerPanel = 20
+		panelInnerW := (termW - 9) / 2 // same math as header
+		if panelInnerW < 20 {
+			panelInnerW = 20
 		}
+		logContent := m.getLogContent(panelContentH)
+		progContent := m.getProgressContent(panelContentH)
 
-		logContent := m.getLogContent(panelHeight - 2) // -2 for border top/bottom
-		progContent := m.getProgressContent(panelHeight - 2)
-
-		logPanel := renderBorderedPanel("Live Output", logContent, innerPerPanel, panelHeight)
-		progPanel := renderBorderedPanel("Progress Log", progContent, innerPerPanel, panelHeight)
-
-		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top,
-			logPanel,
-			" ",
-			progPanel,
-		))
+		logPanel := renderPanel("Live Output", logContent, panelInnerW, panelContentH)
+		progPanel := renderPanel("Progress Log", progContent, panelInnerW, panelContentH)
+		panels = lipgloss.JoinHorizontal(lipgloss.Top, logPanel, " ", progPanel)
 
 	case panelLogOnly:
-		innerWidth := panelWidth - 4 // 2+2 for borders
-		logContent := m.getLogContent(panelHeight - 2)
-		b.WriteString(renderBorderedPanel("Live Output", logContent, innerWidth, panelHeight))
+		panelInnerW := termW - 4 // 2 border chars each side
+		logContent := m.getLogContent(panelContentH)
+		panels = renderPanel("Live Output", logContent, panelInnerW, panelContentH)
 
 	case panelProgressOnly:
-		innerWidth := panelWidth - 4
-		progContent := m.getProgressContent(panelHeight - 2)
-		b.WriteString(renderBorderedPanel("Progress Log", progContent, innerWidth, panelHeight))
+		panelInnerW := termW - 4
+		progContent := m.getProgressContent(panelContentH)
+		panels = renderPanel("Progress Log", progContent, panelInnerW, panelContentH)
 	}
 
-	b.WriteString("\n")
-
-	// Status message
+	// === Footer ===
+	var footer string
 	if m.statusMsg != "" {
 		if m.statusError {
-			b.WriteString(errorStyle.Render("  " + m.statusMsg))
+			footer = errorStyle.Render("  "+m.statusMsg) + "\n"
 		} else {
-			b.WriteString(infoStyle.Render("  " + m.statusMsg))
+			footer = infoStyle.Render("  "+m.statusMsg) + "\n"
 		}
-		b.WriteString("\n")
 	}
-
-	// Confirmation or help
 	if m.confirming != confirmNone {
-		b.WriteString(confirmStyle.Render("  " + m.confirmText))
-		b.WriteString("\n")
-		b.WriteString(ConfirmHelp())
+		footer += confirmStyle.Render("  "+m.confirmText) + "\n" + ConfirmHelp()
 	} else {
-		b.WriteString(DetailHelp(m.detailPanel))
+		footer += DetailHelp(m.detailPanel)
 	}
 
-	return b.String()
+	// === Assemble everything ===
+	return lipgloss.JoinVertical(lipgloss.Left,
+		title,
+		header,
+		panels,
+		footer,
+	)
 }
 
 // getLogContent reads the session log tail.
@@ -206,44 +213,47 @@ func (m Model) getProgressContent(maxLines int) string {
 	return content
 }
 
-// renderBorderedPanel renders a panel with a border and title, fixed to exact height.
-func renderBorderedPanel(title, content string, innerWidth, totalHeight int) string {
-	// Border takes 2 lines (top + bottom)
-	contentHeight := totalHeight - 2
-	if contentHeight < 1 {
-		contentHeight = 1
-	}
-
-	// Truncate content to fit
+// renderPanel creates a bordered panel with a title header and fixed-height content.
+// The title is rendered above the content, inside the border.
+// innerWidth is the content width (border adds 2 chars each side).
+// contentLines is how many lines of text content to show.
+func renderPanel(title, content string, innerWidth, contentLines int) string {
+	// Prepare content: take last N lines, pad if shorter
 	lines := strings.Split(content, "\n")
-	if len(lines) > contentHeight {
-		lines = lines[len(lines)-contentHeight:]
+	if len(lines) > contentLines {
+		lines = lines[len(lines)-contentLines:]
 	}
-	// Pad with empty lines if content is shorter
-	for len(lines) < contentHeight {
+	for len(lines) < contentLines {
 		lines = append(lines, "")
 	}
-
-	// Truncate each line to fit width
+	// Truncate each line to inner width
 	for i, line := range lines {
-		if len(line) > innerWidth {
-			lines[i] = line[:innerWidth]
+		if len(line) > innerWidth-1 {
+			lines[i] = line[:innerWidth-1]
 		}
 	}
 
-	body := strings.Join(lines, "\n")
+	titleStr := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(colorCyan).
+		Render(title)
 
-	return panelBorderStyle.
+	body := titleStr + "\n" + strings.Join(lines, "\n")
+
+	return borderStyle.
 		Width(innerWidth).
-		Height(contentHeight).
-		Render(panelTitleStyle.Render(title) + "\n" + body)
+		Render(body)
 }
 
-func detailRow(label, value string) string {
-	return fmt.Sprintf("  %s %s\n",
+func detailRowStr(label, value string) string {
+	return fmt.Sprintf(" %s %s",
 		detailLabelStyle.Render(label+":"),
 		detailValueStyle.Render(value),
 	)
+}
+
+func detailRow(label, value string) string {
+	return detailRowStr(label, value) + "\n"
 }
 
 func formatDurationShort(d time.Duration) string {
