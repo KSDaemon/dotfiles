@@ -143,11 +143,13 @@ Options:
 Commands:
   (none)                      Continue existing task or create new PRD if none exists
   new                         Force create new PRD (removes old PRD/progress files)
+  install                     Symlink ralph skills (prd, ralph) into AI tool config dirs
   cleanup|finish|clean|clear  Clean PRD/progress files and commit in current branch
 
 Examples:
   ralph                      # Start or continue work with default settings
   ralph new                  # Start fresh with new PRD
+  ralph install              # Install skills to OpenCode and Claude config directories
   ralph cleanup              # Clean up and commit PRD files (finish/clean/clear also work)
   ralph finish               # Same as cleanup - removes PRD and commits
   ralph --tool claude        # Use Claude instead of OpenCode
@@ -205,6 +207,88 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# Handle 'install' command - symlink skills to supported AI tools
+if [ "$COMMAND" = "install" ]; then
+  # Skills source directory (relative to this script)
+  SKILLS_SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/../ralph/skills" && pwd)"
+
+  if [ ! -d "$SKILLS_SRC/prd" ] || [ ! -d "$SKILLS_SRC/ralph" ]; then
+    echo "Error: Skills not found at $SKILLS_SRC"
+    exit 1
+  fi
+
+  INSTALLED=false
+
+  # OpenCode: ~/.config/opencode/skills/
+  if command -v opencode &> /dev/null; then
+    OPENCODE_SKILLS="$HOME/.config/opencode/skills"
+    echo "OpenCode detected. Installing skills to $OPENCODE_SKILLS ..."
+    mkdir -p "$OPENCODE_SKILLS"
+
+    for skill in prd ralph; do
+      target="$OPENCODE_SKILLS/$skill"
+      if [ -L "$target" ]; then
+        existing=$(readlink "$target")
+        if [ "$existing" = "$SKILLS_SRC/$skill" ]; then
+          echo "  $skill: already linked"
+        else
+          echo "  $skill: updating link ($existing -> $SKILLS_SRC/$skill)"
+          rm -f "$target"
+          ln -s "$SKILLS_SRC/$skill" "$target"
+        fi
+      elif [ -e "$target" ]; then
+        echo "  $skill: WARNING - $target exists and is not a symlink, skipping"
+      else
+        ln -s "$SKILLS_SRC/$skill" "$target"
+        echo "  $skill: linked"
+      fi
+    done
+    INSTALLED=true
+  else
+    echo "OpenCode not found, skipping."
+  fi
+
+  # Claude: ~/.claude/skills/
+  if command -v claude &> /dev/null; then
+    CLAUDE_SKILLS="$HOME/.claude/skills"
+    echo "Claude CLI detected. Installing skills to $CLAUDE_SKILLS ..."
+    mkdir -p "$CLAUDE_SKILLS"
+
+    for skill in prd ralph; do
+      target="$CLAUDE_SKILLS/$skill"
+      if [ -L "$target" ]; then
+        existing=$(readlink "$target")
+        if [ "$existing" = "$SKILLS_SRC/$skill" ]; then
+          echo "  $skill: already linked"
+        else
+          echo "  $skill: updating link ($existing -> $SKILLS_SRC/$skill)"
+          rm -f "$target"
+          ln -s "$SKILLS_SRC/$skill" "$target"
+        fi
+      elif [ -e "$target" ]; then
+        echo "  $skill: WARNING - $target exists and is not a symlink, skipping"
+      else
+        ln -s "$SKILLS_SRC/$skill" "$target"
+        echo "  $skill: linked"
+      fi
+    done
+    INSTALLED=true
+  else
+    echo "Claude CLI not found, skipping."
+  fi
+
+  if [ "$INSTALLED" = true ]; then
+    echo ""
+    echo "Skills installed successfully."
+  else
+    echo ""
+    echo "No supported AI tools found. Install opencode or claude first."
+    exit 1
+  fi
+
+  exit 0
+fi
 
 # Validate tool choice
 if [[ "$TOOL" != "amp" && "$TOOL" != "claude" && "$TOOL" != "opencode" ]]; then
@@ -329,6 +413,7 @@ if [ "$PRD_EXISTS" = false ]; then
   echo "Use the PRD skill to generate a detailed requirements document and answer the clarifying questions, smth like:"
   echo "Load the prd skill and create a PRD for [your feature description]"
   echo ""
+  sleep 2
 
   # Start the tool in interactive mode
   if [[ "$TOOL" == "amp" ]]; then
