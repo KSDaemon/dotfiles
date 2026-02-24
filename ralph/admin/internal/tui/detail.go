@@ -12,14 +12,22 @@ import (
 )
 
 const (
-	progressMaxLines = 20
-	logMaxBytes      = 32 * 1024 // read last 32KB of log
-	logMaxLines      = 50
+	logMaxBytes = 32 * 1024 // read last 32KB of log
 
-	// How many lines the header section (info + timing) takes roughly
-	headerReservedLines = 12
-	// Footer (help + status) reserved lines
-	footerReservedLines = 4
+	// Lines reserved for title (1) + header columns (~8) + footer (2) + gaps (3)
+	reservedLines = 14
+)
+
+var (
+	// Panel border style
+	panelBorderStyle = lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(colorDim)
+
+	panelTitleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(colorCyan).
+			PaddingLeft(1)
 )
 
 // updateDetail handles key events in the detail view.
@@ -107,10 +115,9 @@ func (m Model) viewDetail() string {
 	leftBlock := lipgloss.NewStyle().Width(halfWidth).Render(left.String())
 	rightBlock := lipgloss.NewStyle().Width(halfWidth).Render(right.String())
 	b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top, leftBlock, rightBlock))
-	b.WriteString("\n")
 
-	// === Bottom panels: log / progress / split ===
-	panelHeight := m.height - headerReservedLines - footerReservedLines
+	// === Bottom panels ===
+	panelHeight := m.height - reservedLines
 	if panelHeight < 5 {
 		panelHeight = 5
 	}
@@ -122,26 +129,33 @@ func (m Model) viewDetail() string {
 
 	switch m.detailPanel {
 	case panelSplit:
-		splitWidth := (panelWidth - 3) / 2 // 3 for " | " separator
-		logContent := m.getLogContent(panelHeight)
-		progContent := m.getProgressContent(panelHeight)
+		// Account for 2 borders (left+right) per panel = 4 chars each, plus 1 char gap
+		innerPerPanel := (panelWidth - 9) / 2 // 4+4+1 = 9 chars for borders + gap
+		if innerPerPanel < 20 {
+			innerPerPanel = 20
+		}
 
-		logPanel := renderPanel("Live Output", logContent, splitWidth, panelHeight)
-		progPanel := renderPanel("Progress Log", progContent, splitWidth, panelHeight)
+		logContent := m.getLogContent(panelHeight - 2) // -2 for border top/bottom
+		progContent := m.getProgressContent(panelHeight - 2)
+
+		logPanel := renderBorderedPanel("Live Output", logContent, innerPerPanel, panelHeight)
+		progPanel := renderBorderedPanel("Progress Log", progContent, innerPerPanel, panelHeight)
 
 		b.WriteString(lipgloss.JoinHorizontal(lipgloss.Top,
 			logPanel,
-			lipgloss.NewStyle().Foreground(colorDim).Render(" | "),
+			" ",
 			progPanel,
 		))
 
 	case panelLogOnly:
-		logContent := m.getLogContent(panelHeight)
-		b.WriteString(renderPanel("Live Output", logContent, panelWidth, panelHeight))
+		innerWidth := panelWidth - 4 // 2+2 for borders
+		logContent := m.getLogContent(panelHeight - 2)
+		b.WriteString(renderBorderedPanel("Live Output", logContent, innerWidth, panelHeight))
 
 	case panelProgressOnly:
-		progContent := m.getProgressContent(panelHeight)
-		b.WriteString(renderPanel("Progress Log", progContent, panelWidth, panelHeight))
+		innerWidth := panelWidth - 4
+		progContent := m.getProgressContent(panelHeight - 2)
+		b.WriteString(renderBorderedPanel("Progress Log", progContent, innerWidth, panelHeight))
 	}
 
 	b.WriteString("\n")
@@ -192,21 +206,37 @@ func (m Model) getProgressContent(maxLines int) string {
 	return content
 }
 
-// renderPanel renders a titled panel with content, constrained to width and height.
-func renderPanel(title, content string, width, height int) string {
-	titleStr := detailSectionStyle.Render(title)
-
-	// Constrain content to height lines
-	lines := strings.Split(content, "\n")
-	if len(lines) > height-2 { // -2 for title + padding
-		lines = lines[len(lines)-(height-2):]
+// renderBorderedPanel renders a panel with a border and title, fixed to exact height.
+func renderBorderedPanel(title, content string, innerWidth, totalHeight int) string {
+	// Border takes 2 lines (top + bottom)
+	contentHeight := totalHeight - 2
+	if contentHeight < 1 {
+		contentHeight = 1
 	}
 
-	contentStr := progressStyle.
-		Width(width - 2).
-		Render(strings.Join(lines, "\n"))
+	// Truncate content to fit
+	lines := strings.Split(content, "\n")
+	if len(lines) > contentHeight {
+		lines = lines[len(lines)-contentHeight:]
+	}
+	// Pad with empty lines if content is shorter
+	for len(lines) < contentHeight {
+		lines = append(lines, "")
+	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, titleStr, contentStr)
+	// Truncate each line to fit width
+	for i, line := range lines {
+		if len(line) > innerWidth {
+			lines[i] = line[:innerWidth]
+		}
+	}
+
+	body := strings.Join(lines, "\n")
+
+	return panelBorderStyle.
+		Width(innerWidth).
+		Height(contentHeight).
+		Render(panelTitleStyle.Render(title) + "\n" + body)
 }
 
 func detailRow(label, value string) string {

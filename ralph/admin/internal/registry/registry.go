@@ -31,7 +31,9 @@ func NewWithDir(dir string) *Registry {
 }
 
 // List reads all session files from the registry and enriches them
-// with liveness info. Expired sessions (>24h) are cleaned up automatically.
+// with liveness info. Expired sessions (>24h) are cleaned up.
+// Duplicate sessions for the same work_dir are deduplicated: only the
+// newest session per directory is kept, older ones are removed.
 func (r *Registry) List() ([]*session.Session, error) {
 	entries, err := os.ReadDir(r.Dir)
 	if err != nil {
@@ -41,7 +43,7 @@ func (r *Registry) List() ([]*session.Session, error) {
 		return nil, fmt.Errorf("reading registry dir: %w", err)
 	}
 
-	var sessions []*session.Session
+	var all []*session.Session
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
 			continue
@@ -61,17 +63,66 @@ func (r *Registry) List() ([]*session.Session, error) {
 
 		// Remove expired sessions (older than 24h)
 		if sess.IsExpired() {
-			os.Remove(filePath)
+			r.removeSessionFiles(sess)
 			continue
 		}
 
 		// Check if process is alive
 		sess.IsAlive = isProcessAlive(sess.PID)
 
+		all = append(all, sess)
+	}
+
+	// Deduplicate: keep only the newest session per work_dir
+	best := make(map[string]*session.Session)
+	for _, sess := range all {
+		key := sess.WorkDir
+		existing, found := best[key]
+		if !found {
+			best[key] = sess
+			continue
+		}
+		// Prefer running sessions over terminal ones
+		// If same status class, prefer newer
+		if r.sessionPriority(sess) > r.sessionPriority(existing) {
+			r.removeSessionFiles(existing)
+			best[key] = sess
+		} else if r.sessionPriority(sess) == r.sessionPriority(existing) && sess.StartedAt.After(existing.StartedAt) {
+			r.removeSessionFiles(existing)
+			best[key] = sess
+		} else {
+			r.removeSessionFiles(sess)
+		}
+	}
+
+	var sessions []*session.Session
+	for _, sess := range best {
 		sessions = append(sessions, sess)
 	}
 
 	return sessions, nil
+}
+
+// sessionPriority returns a priority value for dedup: higher = keep.
+// Running/paused sessions are preferred over terminal ones.
+func (r *Registry) sessionPriority(sess *session.Session) int {
+	if sess.IsAlive && !sess.IsTerminal() {
+		return 2 // active session — highest priority
+	}
+	if sess.IsAlive {
+		return 1
+	}
+	return 0 // dead or terminal
+}
+
+// removeSessionFiles removes a session's JSON and log files.
+func (r *Registry) removeSessionFiles(sess *session.Session) {
+	if sess.LogFile != "" {
+		os.Remove(sess.LogFile)
+	}
+	if sess.FilePath != "" {
+		os.Remove(sess.FilePath)
+	}
 }
 
 // CleanupExpired removes all session files older than SessionTTL.
