@@ -53,18 +53,6 @@ var (
 	detailValueStyle = lipgloss.NewStyle().
 				Foreground(colorWhite)
 
-	detailSectionStyle = lipgloss.NewStyle().
-				Bold(true).
-				Foreground(colorMagenta).
-				MarginTop(1).
-				MarginBottom(0)
-
-	// Progress text area
-	progressStyle = lipgloss.NewStyle().
-			Foreground(colorGray).
-			MarginTop(1).
-			MarginLeft(2)
-
 	// Error/info messages
 	errorStyle = lipgloss.NewStyle().
 			Foreground(colorRed).

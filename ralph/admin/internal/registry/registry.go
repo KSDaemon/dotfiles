@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 
@@ -99,6 +100,20 @@ func (r *Registry) List() ([]*session.Session, error) {
 	for _, sess := range best {
 		sessions = append(sessions, sess)
 	}
+
+	// Stable sort: active first, then by project name, then newest first
+	sort.Slice(sessions, func(i, j int) bool {
+		a, b := sessions[i], sessions[j]
+		aPri := r.sessionPriority(a)
+		bPri := r.sessionPriority(b)
+		if aPri != bPri {
+			return aPri > bPri // active sessions first
+		}
+		if a.Project != b.Project {
+			return a.Project < b.Project // alphabetical
+		}
+		return a.StartedAt.After(b.StartedAt) // newest first
+	})
 
 	return sessions, nil
 }

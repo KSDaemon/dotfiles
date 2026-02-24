@@ -252,10 +252,6 @@ func detailRowStr(label, value string) string {
 	)
 }
 
-func detailRow(label, value string) string {
-	return detailRowStr(label, value) + "\n"
-}
-
 func formatDurationShort(d time.Duration) string {
 	if d < time.Minute {
 		return fmt.Sprintf("%ds", int(d.Seconds()))
