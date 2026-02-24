@@ -28,6 +28,31 @@ const (
 	confirmKill
 )
 
+// panelMode controls what is shown in the bottom section of detail view.
+type panelMode int
+
+const (
+	panelSplit        panelMode = iota // both log and progress side by side
+	panelLogOnly                       // only live output
+	panelProgressOnly                  // only progress log
+)
+
+func (p panelMode) next() panelMode {
+	return (p + 1) % 3
+}
+
+func (p panelMode) label() string {
+	switch p {
+	case panelSplit:
+		return "split"
+	case panelLogOnly:
+		return "log"
+	case panelProgressOnly:
+		return "progress"
+	}
+	return ""
+}
+
 // tickMsg is sent periodically to refresh session data.
 type tickMsg time.Time
 
@@ -57,6 +82,9 @@ type Model struct {
 	// Status message (shown temporarily)
 	statusMsg   string
 	statusError bool
+
+	// Detail view panel mode
+	detailPanel panelMode
 
 	// Terminal dimensions
 	width  int

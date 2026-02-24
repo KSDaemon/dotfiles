@@ -28,6 +28,24 @@ generate_session_id() {
   SESSION_LOG="$RALPH_REGISTRY_DIR/$SESSION_ID.log"
 }
 
+cleanup_old_sessions() {
+  local work_dir="$1"
+  # Remove any previous sessions from the same work directory
+  # (only one ralph loop should be active per directory)
+  for f in "$RALPH_REGISTRY_DIR"/*.json; do
+    [ -f "$f" ] || continue
+    local old_dir
+    old_dir=$(jq -r '.work_dir // ""' "$f" 2>/dev/null || echo "")
+    if [ "$old_dir" = "$work_dir" ]; then
+      # Also remove its log file
+      local old_log
+      old_log=$(jq -r '.log_file // ""' "$f" 2>/dev/null || echo "")
+      [ -n "$old_log" ] && [ -f "$old_log" ] && rm -f "$old_log"
+      rm -f "$f"
+    fi
+  done
+}
+
 register_session() {
   local project_name="${1:-unknown}"
   local branch="${2:-}"
@@ -36,6 +54,9 @@ register_session() {
   local worktree_dir="${5:-}"
   local started_at
   started_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+  # Clean up any old sessions from the same work directory
+  cleanup_old_sessions "$work_dir"
 
   # Initialize log file
   : > "$SESSION_LOG"

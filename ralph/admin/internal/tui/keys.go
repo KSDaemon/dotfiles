@@ -4,16 +4,17 @@ import "github.com/charmbracelet/bubbles/key"
 
 // KeyMap defines the keybindings for the application.
 type KeyMap struct {
-	Up      key.Binding
-	Down    key.Binding
-	Enter   key.Binding
-	Back    key.Binding
-	Kill    key.Binding
-	Pause   key.Binding
-	Refresh key.Binding
-	Quit    key.Binding
-	Yes     key.Binding
-	No      key.Binding
+	Up          key.Binding
+	Down        key.Binding
+	Enter       key.Binding
+	Back        key.Binding
+	Kill        key.Binding
+	Pause       key.Binding
+	Refresh     key.Binding
+	TogglePanel key.Binding
+	Quit        key.Binding
+	Yes         key.Binding
+	No          key.Binding
 }
 
 // DefaultKeyMap returns the default keybindings.
@@ -46,6 +47,10 @@ var DefaultKeyMap = KeyMap{
 		key.WithKeys("r"),
 		key.WithHelp("r", "refresh"),
 	),
+	TogglePanel: key.NewBinding(
+		key.WithKeys("tab"),
+		key.WithHelp("tab", "toggle panels"),
+	),
 	Quit: key.NewBinding(
 		key.WithKeys("q", "ctrl+c"),
 		key.WithHelp("q", "quit"),
@@ -68,9 +73,10 @@ func ListHelp() string {
 }
 
 // DetailHelp returns the help text for the detail view.
-func DetailHelp() string {
+func DetailHelp(currentPanel panelMode) string {
+	nextLabel := currentPanel.next().label()
 	return helpStyle.Render(
-		"esc: back | x: kill | p: pause/resume | q: quit",
+		"esc: back | tab: show " + nextLabel + " | x: kill | p: pause/resume | q: quit",
 	)
 }
 
