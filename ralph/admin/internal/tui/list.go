@@ -177,20 +177,37 @@ func (m Model) viewList() string {
 			hb := pad(sess.FormatHeartbeat(), cw.heartbeat)
 			uptime := pad(sess.FormatUptime(), cw.uptime)
 
-			// Build the row: plain parts + colored status
-			row := fmt.Sprintf("  %-*s %-*s %-*s %s %s %s %s",
-				cw.project, project,
-				cw.branch, branch,
-				cw.tool, tool,
-				iter,
-				statusStyle(status).Render(stText),
-				hb,
-				uptime,
-			)
-
 			if i == m.cursor {
-				b.WriteString(selectedStyle.Width(m.width).Render(row))
+				// Build entire row as plain text, then apply selectedStyle uniformly.
+				// Status gets a merged style (status color + selected background)
+				// to avoid ANSI reset from inner style killing the outer background.
+				selStatus := selectedStyle.Foreground(statusColor(status))
+				before := fmt.Sprintf("  %-*s %-*s %-*s %s ",
+					cw.project, project,
+					cw.branch, branch,
+					cw.tool, tool,
+					iter)
+				after := fmt.Sprintf(" %s %s", hb, uptime)
+				// Pad the trailing part to fill remaining width
+				usedWidth := lipgloss.Width(before) + lipgloss.Width(stText) + lipgloss.Width(after)
+				trailing := ""
+				if m.width > usedWidth {
+					trailing = strings.Repeat(" ", m.width-usedWidth)
+				}
+				row := selectedStyle.Render(before) +
+					selStatus.Render(stText) +
+					selectedStyle.Render(after+trailing)
+				b.WriteString(row)
 			} else {
+				row := fmt.Sprintf("  %-*s %-*s %-*s %s %s %s %s",
+					cw.project, project,
+					cw.branch, branch,
+					cw.tool, tool,
+					iter,
+					statusStyle(status).Render(stText),
+					hb,
+					uptime,
+				)
 				b.WriteString(row)
 			}
 			b.WriteString("\n")

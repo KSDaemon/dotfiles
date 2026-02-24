@@ -68,6 +68,28 @@ var (
 			MarginTop(1)
 )
 
+// statusColor returns just the foreground color for a session status.
+func statusColor(status string) lipgloss.Color {
+	switch status {
+	case "running":
+		return colorGreen
+	case "completed":
+		return colorCyan
+	case "interrupted":
+		return colorMagenta
+	case "max_iterations_reached":
+		return colorYellow
+	case "paused":
+		return colorYellow
+	case "stale":
+		return colorYellow
+	case "dead":
+		return colorRed
+	default:
+		return colorGray
+	}
+}
+
 // statusStyle returns the appropriate style for a session status.
 func statusStyle(status string) lipgloss.Style {
 	switch status {
