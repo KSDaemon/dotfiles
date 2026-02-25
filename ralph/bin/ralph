@@ -590,14 +590,14 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   # Run the selected tool with the ralph prompt
   # Output goes to: stderr (terminal), session log file, and captured in $OUTPUT
   if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(cat "$PROMPT_FILE" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr -a "$SESSION_LOG") || true
+    OUTPUT=$(cat "$PROMPT_FILE" | amp --dangerously-allow-all 2>&1 | tee -a "$SESSION_LOG" /dev/stderr) || true
   elif [[ "$TOOL" == "claude" ]]; then
-    OUTPUT=$(claude --dangerously-skip-permissions --print < "$PROMPT_FILE" 2>&1 | tee /dev/stderr -a "$SESSION_LOG") || true
+    OUTPUT=$(claude --dangerously-skip-permissions --print < "$PROMPT_FILE" 2>&1 | tee -a "$SESSION_LOG" /dev/stderr) || true
   else
     if [[ ! -f "opencode.json" ]]; then
-      OUTPUT=$(cat "$PROMPT_FILE" | opencode run 2>&1 | tee /dev/stderr -a "$SESSION_LOG") || true
+      OUTPUT=$(cat "$PROMPT_FILE" | opencode run 2>&1 | tee -a "$SESSION_LOG" /dev/stderr) || true
     else
-      OUTPUT=$(cat "$PROMPT_FILE" | opencode --config opencode.json run 2>&1 | tee /dev/stderr -a "$SESSION_LOG") || true
+      OUTPUT=$(cat "$PROMPT_FILE" | opencode --config opencode.json run 2>&1 | tee -a "$SESSION_LOG" /dev/stderr) || true
     fi
   fi
 
