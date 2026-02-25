@@ -74,10 +74,11 @@ func (r *Registry) List() ([]*session.Session, error) {
 		all = append(all, sess)
 	}
 
-	// Deduplicate: keep only the newest session per work_dir
+	// Deduplicate: keep only the newest session per real work directory.
+	// Resolve symlinks so worktree paths pointing to the same dir are deduped.
 	best := make(map[string]*session.Session)
 	for _, sess := range all {
-		key := sess.WorkDir
+		key := resolveRealPath(sess.WorkDir)
 		existing, found := best[key]
 		if !found {
 			best[key] = sess
@@ -292,6 +293,16 @@ func (r *Registry) updateStatus(sess *session.Session, status string) {
 func isProcessAlive(pid int) bool {
 	err := syscall.Kill(pid, 0)
 	return err == nil
+}
+
+// resolveRealPath resolves symlinks to get the real path.
+// Falls back to the original path if resolution fails.
+func resolveRealPath(path string) string {
+	real, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return path
+	}
+	return real
 }
 
 // ReadProgressFile reads the last N lines of the progress.txt file
