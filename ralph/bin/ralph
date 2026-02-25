@@ -607,6 +607,26 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     echo "Ralph completed all tasks!"
     echo "Completed at iteration $i of $MAX_ITERATIONS"
 
+    # Clean up PRD and progress files (same as 'ralph cleanup')
+    if [ -f "$PRD_FILE" ]; then
+      echo ""
+      echo "Cleaning up PRD and progress files..."
+      git rm -f "$PRD_FILE" "$PROGRESS_FILE" 2>/dev/null || {
+        rm -f "$PRD_FILE" "$PROGRESS_FILE"
+        git add "$PRD_FILE" "$PROGRESS_FILE" 2>/dev/null || true
+      }
+      git add .ralph/prd.json .ralph/progress.txt 2>/dev/null || true
+      if ! git commit -m "chore: cleanup ralph PRD and progress files"; then
+        echo "Commit failed (possibly due to pre-commit hooks with auto-fixes)."
+        echo "Re-staging files and retrying commit..."
+        git add .ralph/ 2>/dev/null || true
+        git commit -m "chore: cleanup ralph PRD and progress files" || {
+          echo "Warning: Could not commit cleanup. Please run 'ralph cleanup' manually."
+        }
+      fi
+      echo "Cleanup complete!"
+    fi
+
     # Cleanup worktree if used
     if [ "$USE_WORKTREE" = true ] && [ -n "$WORKTREE_DIR" ]; then
       echo ""
