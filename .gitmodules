@@ -11,5 +11,5 @@
 	path = pg-utils
 	url = https://github.com/dataegret/pg-utils
 [submodule "ralph"]
-	path = ralph
+	path = ralphy
 	url = git@github.com:KSDaemon/ralphy.git
