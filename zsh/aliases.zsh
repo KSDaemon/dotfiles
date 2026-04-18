@@ -43,6 +43,7 @@ alias clicolors='for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%
 alias removehuskyhooks='rm `grep -l husky .git/hooks/*`'
 alias docker=podman
 alias claude='SHELL=/bin/bash claude'
+alias lazygit='LANG=en_US lazygit'
 
 alias -g N='2>/dev/null'
 alias -g L='| less'
@@ -50,3 +51,4 @@ alias -g H='| head'
 alias -g T='| tail'
 alias -g G='| grep'
 alias -g EG='| egrep'
+
