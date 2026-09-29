@@ -13,3 +13,5 @@ openresty
 npm-debug.log
 cmake-build-debug
 
+
+**/.claude/settings.local.json
